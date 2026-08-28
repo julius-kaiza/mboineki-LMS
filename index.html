@@ -116,8 +116,8 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div id="modalBox" class="modal-box"></div></div>
 
 <script>
-const CONFIG={ SUPABASE_URL: "", SUPABASE_ANON_KEY: "" };
-const hasBackend = false;
+const CONFIG={ SUPABASE_URL: "https://ykeeqriqifuhzhjespro.supabase.co", SUPABASE_ANON_KEY: "sb_publishable_h6numkplMPSASwLP_I64Og_fQErzIVC" };
+const hasBackend = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
 
 const KEYS = {
   levels: "mboino_ent_levels", classes: "mboino_ent_classes", subjects: "mboino_ent_subjects",
