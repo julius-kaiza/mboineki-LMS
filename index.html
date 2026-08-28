@@ -95,6 +95,7 @@ main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.ban
       <div id="adminTools" class="toolbar hidden">
         <button class="btn purple" onclick="openManager()">⚙️ Manage Hierarchy & Rename</button>
         <button class="btn primary" onclick="openLessonModal()">+ Add Lesson Content</button>
+        <button class="btn warn hidden" id="userManagementBtn" onclick="openUserManagementModal()">👥 Manage Accounts</button>
       </div>
       <div id="lessonArea">
         <div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any structured curriculum item on the left to explore lessons and learning content.</p></div>
@@ -165,7 +166,7 @@ async function loadData(){
       if(lesData) {
         state.lessons = lesData.map(l => ({
           ...l,
-          class: l.class_name // Map backend class_name to UI class
+          class: l.class_name 
         }));
       }
 
@@ -176,7 +177,6 @@ async function loadData(){
     }
   }
 
-  // Local storage fallback
   try {
     if(!localStorage.getItem(KEYS.users)) {
       saveUsers([
@@ -237,6 +237,11 @@ function bootUI(){
   $("modeBadge").textContent = hasBackend ? "Enterprise Cloud" : "Local Storage Mode";
   $("modeBadge").classList.toggle("offline", !hasBackend);
   $("adminTools").classList.toggle("hidden", !canEdit());
+  
+  if($("userManagementBtn")) {
+    $("userManagementBtn").classList.toggle("hidden", !isAdmin());
+  }
+  
   renderTree();
   if(state.lessons.length) openLesson(state.lessons[0].id);
 }
@@ -251,7 +256,12 @@ async function login(e){
       return toast("Login error: " + error.message);
     }
     if(data.user) {
-      const userRole = (data.user.email === "admin@mboineki.local") ? "ADMIN" : (data.user.user_metadata?.role || "STUDENT");
+      let userRole = (data.user.email === "admin@mboineki.local") ? "ADMIN" : (data.user.user_metadata?.role || "STUDENT");
+      
+      const localUList = localUsers();
+      const matchLocal = localUList.find(x => x.email === email);
+      if(matchLocal) userRole = matchLocal.role;
+
       state.user = { 
         id: data.user.id, 
         email: data.user.email, 
@@ -377,6 +387,124 @@ function updatePassword(e){
     toast("Password updated in session context.");
     closeModal();
   }
+}
+
+function openUserManagementModal(){
+  if(!isAdmin()) return toast("Access denied. Admin privileges required.");
+  const users = localUsers();
+  
+  openModalContent(`
+    <h2>👥 Admin Account Management</h2>
+    <p class="muted">Full control to view, edit roles, change passwords, or delete registered user accounts.</p>
+    
+    <div class="card" style="background:#09111e; margin-bottom:15px">
+      <h3>Add New User Account</h3>
+      <form onsubmit="adminCreateUser(event)">
+        <div class="grid">
+          <div><label>Full Name</label><input id="admNewName" required></div>
+          <div><label>Email</label><input id="admNewEmail" type="email" required></div>
+          <div><label>Password</label><input id="admNewPass" type="password" minlength="6" required></div>
+          <div><label>Role</label><select id="admNewRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option><option value="ADMIN">Administrator</option></select></div>
+        </div>
+        <button class="btn success" style="margin-top:12px">Create User Account</button>
+      </form>
+    </div>
+
+    <h3>Registered System Accounts (${users.length})</h3>
+    <div class="list" style="max-height:350px; overflow-y:auto">
+      ${users.map(u => `
+        <div class="item">
+          <div>
+            <strong>${esc(u.name)}</strong> (${esc(u.email)})<br>
+            <small class="muted">Role: <b>${esc(u.role)}</b> | ID: ${esc(u.id)}</small>
+          </div>
+          <div class="row">
+            <button class="btn warn" onclick="adminEditUserModal('${u.id}')">Edit</button>
+            ${u.id !== state.user.id ? `<button class="btn danger" onclick="adminDeleteUser('${u.id}')">Delete</button>` : `<span class="muted" style="font-size:11px">(You)</span>`}
+          </div>
+        </div>
+      `).join("") || `<div class="empty">No registered user accounts found.</div>`}
+    </div>
+
+    <div style="text-align:right;margin-top:20px">
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
+
+function adminCreateUser(e){
+  e.preventDefault();
+  const name = $("admNewName").value.trim();
+  const email = $("admNewEmail").value.trim().toLowerCase();
+  const password = $("admNewPass").value;
+  const role = $("admNewRole").value;
+
+  const users = localUsers();
+  if(users.some(x => x.email === email)) return toast("An account with this email already exists.");
+
+  const u = { id: uid("usr"), name, email, password, role, status: "ACTIVE" };
+  users.push(u);
+  saveUsers(users);
+  toast(`User account for "${name}" created successfully!`);
+  openUserManagementModal();
+}
+
+function adminEditUserModal(userId){
+  const users = localUsers();
+  const u = users.find(x => x.id === userId);
+  if(!u) return toast("User account not found.");
+
+  openModalContent(`
+    <h2>✏️ Edit User Account</h2>
+    <form onsubmit="adminUpdateUser(event, '${u.id}')">
+      <label>Full Name</label>
+      <input id="editUsrName" value="${esc(u.name)}" required>
+      <label>Email</label>
+      <input id="editUsrEmail" type="email" value="${esc(u.email)}" required>
+      <label>New Password (leave blank to keep current)</label>
+      <input id="editUsrPass" type="password" placeholder="••••••••">
+      <label>Role</label>
+      <select id="editUsrRole">
+        <option value="STUDENT" ${u.role==="STUDENT"?"selected":""}>Student</option>
+        <option value="TUTOR" ${u.role==="TUTOR"?"selected":""}>Teacher / Tutor</option>
+        <option value="ADMIN" ${u.role==="ADMIN"?"selected":""}>Administrator</option>
+      </select>
+      <div class="row" style="margin-top:18px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="openUserManagementModal()">Back</button>
+        <button type="submit" class="btn primary">Save Changes</button>
+      </div>
+    </form>
+  `);
+}
+
+function adminUpdateUser(e, userId){
+  e.preventDefault();
+  const name = $("editUsrName").value.trim();
+  const email = $("editUsrEmail").value.trim().toLowerCase();
+  const pass = $("editUsrPass").value;
+  const role = $("editUsrRole").value;
+
+  const users = localUsers();
+  const idx = users.findIndex(x => x.id === userId);
+  if(idx === -1) return toast("User record not found.");
+
+  users[idx].name = name;
+  users[idx].email = email;
+  users[idx].role = role;
+  if(pass) users[idx].password = pass;
+
+  saveUsers(users);
+  toast("User account updated successfully!");
+  openUserManagementModal();
+}
+
+function adminDeleteUser(userId){
+  if(!confirm("Are you sure you want to permanently delete this user account?")) return;
+  let users = localUsers();
+  users = users.filter(x => x.id !== userId);
+  saveUsers(users);
+  toast("User account deleted.");
+  openUserManagementModal();
 }
 
 function openModalContent(html){
@@ -673,104 +801,130 @@ function renameSubjectPrompt(level, cls, oldSub){
   toast("Subject renamed successfully!");
 }
 
-/* --- DELETE HIERARCHY FUNCTIONS --- */
-async function deleteLevelPrompt(level){
-  if(!confirm(`Delete entire level "${level}" and all nested classes, subjects, and lessons?`)) return;
-  if(hasBackend) {
-    await sb.from('levels').delete().eq('name', level);
-    await sb.from('classes').delete().eq('level', level);
-    await sb.from('subjects').delete().eq('level', level);
-    await sb.from('lessons').delete().eq('level', level);
-  }
+/* --- DELETION FUNCTIONS --- */
+function deleteLevelPrompt(level){
+  if(!confirm(`Delete entire level "${level}" and all its classes, subjects, and lessons?`)) return;
   state.levels = state.levels.filter(l => l !== level);
   delete state.classes[level];
   Object.keys(state.subjects).forEach(k => { if(k.startsWith(level + "__")) delete state.subjects[k]; });
   state.lessons = state.lessons.filter(l => l.level !== level);
   saveLocal();
   renderTree();
-  $("lessonArea").innerHTML = `<div class="card"><h2>Level Deleted</h2><p class="muted">Select another curriculum node.</p></div>`;
-  toast("Level deleted.");
+  $("lessonArea").innerHTML = `<div class="card"><h2>Level deleted</h2><p class="muted">Select another item from the sidebar.</p></div>`;
+  toast("Level deleted successfully.");
 }
 
-async function deleteClassPrompt(level, cls){
-  if(!confirm(`Delete class "${cls}" and all its subjects and lessons?`)) return;
-  if(hasBackend) {
-    await sb.from('classes').delete().eq('level', level).eq('name', cls);
-    await sb.from('subjects').delete().eq('level', level).eq('class_name', cls);
-    await sb.from('lessons').delete().eq('level', level).eq('class_name', cls);
-  }
-  if(state.classes[level]) state.classes[level] = state.classes[level].filter(c => c !== cls);
-  delete state.subjects[`${level}__${cls}`];
+function deleteClassPrompt(level, cls){
+  if(!confirm(`Delete class "${cls}" and its subjects/lessons?`)) return;
+  state.classes[level] = (state.classes[level] || []).filter(c => c !== cls);
+  const key = `${level}__${cls}`;
+  delete state.subjects[key];
   state.lessons = state.lessons.filter(l => !(l.level === level && l.class === cls));
   saveLocal();
   renderTree();
   filterByLevel(level);
-  toast("Class deleted.");
+  toast("Class deleted successfully.");
 }
 
-async function deleteSubjectPrompt(level, cls, sub){
-  if(!confirm(`Delete subject "${sub}" and all its lessons?`)) return;
-  if(hasBackend) {
-    await sb.from('subjects').delete().eq('level', level).eq('class_name', cls).eq('name', sub);
-    await sb.from('lessons').delete().eq('level', level).eq('class_name', cls).eq('subject', sub);
-  }
+function deleteSubjectPrompt(level, cls, sub){
+  if(!confirm(`Delete subject "${sub}" and its lessons?`)) return;
   const key = `${level}__${cls}`;
-  if(state.subjects[key]) state.subjects[key] = state.subjects[key].filter(s => s !== sub);
+  state.subjects[key] = (state.subjects[key] || []).filter(s => s !== sub);
   state.lessons = state.lessons.filter(l => !(l.level === level && l.class === cls && l.subject === sub));
   saveLocal();
   renderTree();
   filterByClass(level, cls);
-  toast("Subject deleted.");
+  toast("Subject deleted successfully.");
 }
 
-/* --- LESSON CONTENT MANAGEMENT --- */
+/* --- LESSON / CONTENT MANAGEMENT --- */
 function openLessonModal(){
-  const allSubjOptions = Object.keys(state.subjects).flatMap(key => {
-    const parts = key.split("__");
-    const lvl = parts[0], cls = parts[1];
-    return (state.subjects[key] || []).map(sub => `<option value="${esc(lvl)}||${esc(cls)}||${esc(sub)}">${esc(lvl)} › ${esc(cls)} › ${esc(sub)}</option>`);
-  }).join("");
-
-  if(!allSubjOptions) return toast("Please create at least one Education Level, Class, and Subject first using 'Manage Hierarchy'.");
+  const defaultSubKey = Object.keys(state.subjects)[0] || "";
+  const parts = defaultSubKey.split("__");
+  const dLevel = parts[0] || "", dClass = parts[1] || "", dSub = (state.subjects[defaultSubKey] || [])[0] || "";
 
   openModalContent(`
-    <h2>+ Add Lesson / Content</h2>
+    <h2>+ Add Lesson Content</h2>
     <form onsubmit="saveNewLesson(event)">
-      <label>Target Subject (Parent)</label>
-      <select id="lessonSubjectPath">${allSubjOptions}</select>
-      <label>Lesson / Content Title</label>
-      <input id="lessonTitle" required placeholder="e.g. Advanced Algorithms">
-      <label>YouTube Video URL (optional)</label>
-      <input id="lessonVideo" placeholder="https://www.youtube.com/watch?v=...">
-      <label>Lesson Notes / Content Description</label>
-      <textarea id="lessonContent" required placeholder="Enter comprehensive learning notes, instructions, or article text here..."></textarea>
+      <label>Select Subject</label>
+      <select id="lesSubSelect">
+        ${Object.keys(state.subjects).flatMap(key => {
+          const p = key.split("__");
+          const lvl = p[0], cls = p[1];
+          return (state.subjects[key] || []).map(sub => `<option value="${esc(lvl)}||${esc(cls)}||${esc(sub)}">${esc(lvl)} › ${esc(cls)} › ${esc(sub)}</option>`);
+        }).join("")}
+      </select>
+      <label>Lesson Title</label>
+      <input id="lesTitle" placeholder="e.g. Introduction to Algebra" required>
+      <label>YouTube Video URL (Optional)</label>
+      <input id="lesVideo" placeholder="https://www.youtube.com/watch?v=...">
+      <label>Lesson Content / Text</label>
+      <textarea id="lesContent" placeholder="Enter full comprehensive text notes or instructions..." required></textarea>
       <div class="row" style="margin-top:15px;justify-content:flex-end">
         <button type="button" class="btn" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn primary">Publish Content</button>
+        <button type="submit" class="btn primary">Publish Lesson</button>
       </div>
     </form>
   `);
 }
 
-function openLessonForSubject(lvl, cls, sub){
+function openLessonForSubject(level, cls, sub){
   openModalContent(`
     <h2>+ Add Content under ${esc(sub)}</h2>
-    <form onsubmit="saveNewLesson(event)">
-      <input type="hidden" id="presetPath" value="${esc(lvl)}||${esc(cls)}||${esc(sub)}">
-      <label>Path</label>
-      <input value="${esc(lvl)} › ${esc(cls)} › ${esc(sub)}" readonly style="color:var(--muted)">
-      <label>Title</label>
-      <input id="lessonTitle" required placeholder="e.g. Module 1 Notes">
-      <label>YouTube Video URL (optional)</label>
-      <input id="lessonVideo" placeholder="https://www.youtube.com/watch?v=...">
-      <label>Notes / Content</label>
-      <textarea id="lessonContent" required placeholder="Type notes here..."></textarea>
+    <form onsubmit="saveNewLessonSpecific(event, '${esc(level)}', '${esc(cls)}', '${esc(sub)}')">
+      <label>Lesson Title</label>
+      <input id="lesTitle" placeholder="e.g. Advanced Equations" required>
+      <label>YouTube Video URL (Optional)</label>
+      <input id="lesVideo" placeholder="https://www.youtube.com/watch?v=...">
+      <label>Lesson Content / Text</label>
+      <textarea id="lesContent" placeholder="Enter lesson notes..." required></textarea>
       <div class="row" style="margin-top:15px;justify-content:flex-end">
         <button type="button" class="btn" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn primary">Publish Content</button>
+        <button type="submit" class="btn primary">Publish Lesson</button>
       </div>
     </form>
   `);
+}
+
+async function saveNewLesson(e){
+  e.preventDefault();
+  const val = $("lesSubSelect").value;
+  if(!val) return toast("Please select a valid subject.");
+  const [level, cls, subject] = val.split("||");
+  const title = $("lesTitle").value.trim();
+  const video = $("lesVideo").value.trim();
+  const content = $("lesContent").value.trim();
+
+  const id = uid("les");
+  const newLes = { id, level, class: cls, subject, title, video, content };
+  if(hasBackend) {
+    await sb.from('lessons').insert([{ id, level, class_name: cls, subject, title, video, content }]);
+  }
+  state.lessons.push(newLes);
+  saveLocal();
+  closeModal();
+  renderTree();
+  openLesson(id);
+  toast("Lesson added successfully!");
+}
+
+async function saveNewLessonSpecific(e, level, cls, subject){
+  e.preventDefault();
+  const title = $("lesTitle").value.trim();
+  const video = $("lesVideo").value.trim();
+  const content = $("lesContent").value.trim();
+
+  const id = uid("les");
+  const newLes = { id, level, class: cls, subject, title, video, content };
+  if(hasBackend) {
+    await sb.from('lessons').insert([{ id, level, class_name: cls, subject, title, video, content }]);
+  }
+  state.lessons.push(newLes);
+  saveLocal();
+  closeModal();
+  renderTree();
+  openLesson(id);
+  toast("Lesson added successfully!");
 }
 
 function openEditLesson(id){
@@ -778,12 +932,12 @@ function openEditLesson(id){
   if(!l) return;
   openModalContent(`
     <h2>✏️ Edit Lesson Content</h2>
-    <form onsubmit="saveEditedLesson(event, '${l.id}')">
-      <label>Title</label>
+    <form onsubmit="updateLesson(event, '${l.id}')">
+      <label>Lesson Title</label>
       <input id="editTitle" value="${esc(l.title)}" required>
       <label>YouTube Video URL</label>
-      <input id="editVideo" value="${esc(l.video || '')}" placeholder="https://www.youtube.com/watch?v=...">
-      <label>Notes / Content</label>
+      <input id="editVideo" value="${esc(l.video || '')}">
+      <label>Lesson Content / Text</label>
       <textarea id="editContent" required>${esc(l.content)}</textarea>
       <div class="row" style="margin-top:15px;justify-content:flex-end">
         <button type="button" class="btn" onclick="closeModal()">Cancel</button>
@@ -793,7 +947,7 @@ function openEditLesson(id){
   `);
 }
 
-async function saveEditedLesson(e, id){
+async function updateLesson(e, id){
   e.preventDefault();
   const title = $("editTitle").value.trim();
   const video = $("editVideo").value.trim();
@@ -807,55 +961,22 @@ async function saveEditedLesson(e, id){
     }
     saveLocal();
     closeModal();
+    renderTree();
     openLesson(id);
-    toast("Lesson content updated successfully!");
+    toast("Lesson updated successfully!");
   }
-}
-
-async function saveNewLesson(e){
-  e.preventDefault();
-  const preset = $("presetPath");
-  let lvl, cls, sub;
-  
-  if(preset) {
-    const parts = preset.value.split("||");
-    lvl = parts[0]; cls = parts[1]; sub = parts[2];
-  } else {
-    const val = $("lessonSubjectPath").value;
-    const parts = val.split("||");
-    lvl = parts[0]; cls = parts[1]; sub = parts[2];
-  }
-
-  const title = $("lessonTitle").value.trim();
-  const video = $("lessonVideo").value.trim();
-  const content = $("lessonContent").value.trim();
-  const id = uid("les");
-
-  if(hasBackend) {
-    await sb.from('lessons').insert([{
-      id, level: lvl, class_name: cls, subject: sub, title, video, content
-    }]);
-  }
-
-  const newLes = { id, level: lvl, class: cls, subject: sub, title, video, content };
-  state.lessons.push(newLes);
-  saveLocal();
-  closeModal();
-  renderTree();
-  openLesson(id);
-  toast("Lesson published successfully!");
 }
 
 async function deleteLesson(id){
-  if(!confirm("Are you sure you want to delete this content?")) return;
+  if(!confirm("Are you sure you want to delete this lesson?")) return;
+  state.lessons = state.lessons.filter(x => x.id !== id);
   if(hasBackend) {
     await sb.from('lessons').delete().eq('id', id);
   }
-  state.lessons = state.lessons.filter(l => l.id !== id);
   saveLocal();
   renderTree();
-  $("lessonArea").innerHTML = `<div class="card"><h2>Content Deleted</h2><p class="muted">Select another lesson from the sidebar.</p></div>`;
-  toast("Content deleted.");
+  $("lessonArea").innerHTML = `<div class="card"><h2>Lesson deleted</h2><p class="muted">Select another lesson from the sidebar.</p></div>`;
+  toast("Lesson deleted.");
 }
 </script>
 </body>
