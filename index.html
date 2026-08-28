@@ -48,10 +48,10 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
       <form id="loginForm">
         <label>Email</label><input id="loginEmail" type="email" required autocomplete="email">
         <label>Password</label><input id="loginPassword" type="password" required autocomplete="current-password">
-        <button class="btn primary" style="width:100%;margin-top:15px">Log in</button>
+        <button class="btn primary" style="width:100%;margin-top:15px" type="submit">Log in</button>
       </form>
       <p class="muted">New here? <span class="link" onclick="showAuth('signup')">Create an account</span></p>
-      <button class="btn success" style="width:100%;margin-top:10px" onclick="openShareModal()">📤 Share Platform Link</button>
+      <button class="btn success" style="width:100%;margin-top:10px" type="button" onclick="openShareModal()">📤 Share Platform Link</button>
     </div>
     <div id="signupView" class="hidden">
       <h2>Create account</h2>
@@ -60,7 +60,7 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
         <label>Email</label><input id="signupEmail" type="email" required>
         <label>Password</label><input id="signupPassword" type="password" minlength="6" required>
         <label>Account type</label><select id="signupRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option><option value="ADMIN">Admin</option></select>
-        <button class="btn success" style="width:100%;margin-top:15px">Create account</button>
+        <button class="btn success" style="width:100%;margin-top:15px" type="submit">Create account</button>
       </form>
       <p class="muted">Already registered? <span class="link" onclick="showAuth('login')">Sign in</span></p>
     </div>
@@ -164,26 +164,35 @@ async function loadData(){
         state.lessons = lesRes.data || [];
         state.courses = crsRes.data || [];
         state.notifications = notRes.data || [];
-        return;
       }
     } catch(e) { console.warn("Supabase fetch failed, fallback to local storage", e); }
   }
   
-  // Local fallback storage
-  try {
-    if(!localStorage.getItem(KEYS.users)) {
-      saveUsers([
-        { id: "local-admin", name: "Enterprise Admin", email: "admin@mboineki.local", password: "ChangeMe123!", role: "ADMIN" },
-        { id: "local-student", name: "Sample Student", email: "student@mboineki.local", password: "StudentPassword123!", role: "STUDENT" }
-      ]);
-    }
+  // Ensure defaults/local storage fallback always has base configuration
+  if(!localStorage.getItem(KEYS.users)) {
+    saveUsers([
+      { id: "local-admin", name: "Enterprise Admin", email: "admin@mboineki.local", password: "ChangeMe123!", role: "ADMIN" },
+      { id: "local-student", name: "Sample Student", email: "student@mboineki.local", password: "StudentPassword123!", role: "STUDENT" }
+    ]);
+  }
+  if(state.levels.length === 0) {
     state.levels = JSON.parse(localStorage.getItem(KEYS.levels) || '["Primary Level", "Secondary Level", "University / Tertiary"]');
+  }
+  if(Object.keys(state.classes).length === 0) {
     state.classes = JSON.parse(localStorage.getItem(KEYS.classes) || '{"Primary Level":["Grade 5","Grade 6"],"Secondary Level":["Form 3","Form 4"],"University / Tertiary":["Year 1 BSc"]}');
+  }
+  if(Object.keys(state.subjects).length === 0) {
     state.subjects = JSON.parse(localStorage.getItem(KEYS.subjects) || '{"Primary Level_Grade 5":["Mathematics","Elementary Science"],"Secondary Level_Form 3":["Physics","Chemistry"],"University / Tertiary_Year 1 BSc":["Advanced Calculus"]}');
+  }
+  if(state.lessons.length === 0) {
     state.lessons = JSON.parse(localStorage.getItem(KEYS.lessons) || '[]');
+  }
+  if(state.courses.length === 0) {
     state.courses = JSON.parse(localStorage.getItem(KEYS.courses) || '[{"id":"c1","title":"Fullstack Web Engineering","description":"Professional software creation masterclass."}]');
+  }
+  if(state.notifications.length === 0) {
     state.notifications = JSON.parse(localStorage.getItem(KEYS.notifications) || '[{"id":"n1","title":"System Online","message":"Welcome to Mboineki LMS Enterprise Edition.","time":"Just now"}]');
-  } catch(e) { console.error("Local loading error", e); }
+  }
 }
 
 function saveLocalCache(){
@@ -221,7 +230,11 @@ function showAuth(view){ ["login", "signup"].forEach(v => $(`${v}View`).classLis
 async function init(){
   await loadData();
   const s = sessionStorage.getItem(KEYS.session);
-  if(s) { state.user = JSON.parse(s); bootUI(); } else showAuth("login");
+  if(s) { 
+    try { state.user = JSON.parse(s); bootUI(); } catch { showAuth("login"); } 
+  } else {
+    showAuth("login");
+  }
 }
 
 function bootUI(){
@@ -229,7 +242,7 @@ function bootUI(){
   $("profileName").textContent = state.user.name; $("profileRole").textContent = state.user.role;
   $("roleBadge").textContent = state.user.role;
   $("modeBadge").textContent = hasBackend ? "Supabase Cloud Mode" : "Local Storage Mode";
-  if(!hasBackend) $("modeBadge").classList.add("offline");
+  if(!hasBackend) $("modeBadgeclassList")?.add("offline");
   $("adminTools").classList.toggle("hidden", !isAdmin());
   updateNotifBadge(); renderTree();
   if(state.lessons.length) openLesson(state.lessons[0].id);
@@ -239,7 +252,7 @@ function login(e){
   e.preventDefault();
   const email = $("loginEmail").value.trim().toLowerCase(), pass = $("loginPassword").value;
   const u = localUsers().find(x => x.email === email && x.password === pass);
-  if(!u) return toast("Invalid credentials provided.");
+  if(!u) return toast("Invalid credentials provided. Check your email or password.");
   state.user = u; sessionStorage.setItem(KEYS.session, JSON.stringify(u)); bootUI();
 }
 
@@ -602,4 +615,30 @@ function initWhiteboard(){
   if(!canvas) return;
   const ctx = canvas.getContext("2d");
   let drawing = false;
-  canvas.onmousedown = (e) => { drawing = true; ctx.beginPath();
+
+  canvas.width = canvas.parentElement.clientWidth - 36;
+  
+  canvas.onmousedown = (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
+  canvas.onmousemove = (e) => {
+    if(!drawing) return;
+    ctx.strokeStyle = $("wbColor")?.value || "#3b82f6";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+  };
+  window.onmouseup = () => { drawing = false; };
+}
+
+function clearWhiteboard(){
+  const canvas = $("whiteboardCanvas");
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Start application initialization
+window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
