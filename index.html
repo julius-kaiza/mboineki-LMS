@@ -118,7 +118,8 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
 <script>
 const CONFIG={ SUPABASE_URL: "https://ykeeqriqifuhzhjespro.supabase.co", SUPABASE_ANON_KEY: "sb_publishable_h6numkplMPSASwLP_I64Og_fQErzIVC" };
 const hasBackend = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
-
+const sb = hasBackend ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
+  
 const KEYS = {
   levels: "mboino_ent_levels", classes: "mboino_ent_classes", subjects: "mboino_ent_subjects",
   lessons: "mboino_ent_lessons", courses: "mboino_ent_courses", users: "mboino_ent_users",
