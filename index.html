@@ -247,8 +247,16 @@ async function login(e){
   
   if(hasBackend) {
     const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if(!error && data.user) {
-      state.user = { id: data.user.id, email: data.user.email, name: data.user.user_metadata?.name || "Cloud User", role: data.user.user_metadata?.role || "STUDENT" };
+    if(error) {
+      return toast("Login error: " + error.message);
+    }
+    if(data.user) {
+      state.user = { 
+        id: data.user.id, 
+        email: data.user.email, 
+        name: data.user.user_metadata?.name || "Cloud User", 
+        role: data.user.user_metadata?.role || "STUDENT" 
+      };
       sessionStorage.setItem(KEYS.session, JSON.stringify(state.user));
       bootUI();
       return;
@@ -649,43 +657,41 @@ function openLessonForSubject(lvl, cls, sub){
 
 async function saveNewLesson(e){
   e.preventDefault();
-  let pathVal = "";
   const preset = $("presetPath");
-  if(preset) pathVal = preset.value;
-  else pathVal = $("lessonSubjectPath").value;
-
-  const parts = pathVal.split("||");
-  const level = parts[0], cls = parts[1], subject = parts[2];
+  let lvl, cls, sub;
   
+  if(preset) {
+    const parts = preset.value.split("||");
+    lvl = parts[0]; cls = parts[1]; sub = parts[2];
+  } else {
+    const val = $("lessonSubjectPath").value;
+    const parts = val.split("||");
+    lvl = parts[0]; cls = parts[1]; sub = parts[2];
+  }
+
   const title = $("lessonTitle").value.trim();
   const video = $("lessonVideo").value.trim();
   const content = $("lessonContent").value.trim();
-
-  const newLesson = { id: uid("les"), level, class: cls, subject, title, video, content };
+  const id = uid("les");
 
   if(hasBackend) {
     await sb.from('lessons').insert([{
-      id: newLesson.id,
-      level: newLesson.level,
-      class_name: newLesson.class, // Map to class_name for Supabase
-      subject: newLesson.subject,
-      title: newLesson.title,
-      video: newLesson.video,
-      content: newLesson.content
+      id, level: lvl, class_name: cls, subject: sub, title, video, content
     }]);
   }
 
-  state.lessons.push(newLesson);
+  const newLes = { id, level: lvl, class: cls, subject: sub, title, video, content };
+  state.lessons.push(newLes);
   saveLocal();
   closeModal();
   renderTree();
-  openLesson(newLesson.id);
-  toast("Lesson content published successfully!");
+  openLesson(id);
+  toast("Lesson published successfully!");
 }
 
 async function deleteLesson(id){
-  if(!confirm("Are you sure you want to delete this lesson?")) return;
-
+  if(!confirm("Are you sure you want to delete this content?")) return;
+  
   if(hasBackend) {
     await sb.from('lessons').delete().eq('id', id);
   }
@@ -693,8 +699,8 @@ async function deleteLesson(id){
   state.lessons = state.lessons.filter(l => l.id !== id);
   saveLocal();
   renderTree();
-  $("lessonArea").innerHTML = `<div class="card"><h2>Content Deleted</h2><p class="muted">Select another item from the sidebar.</p></div>`;
-  toast("Lesson deleted successfully.");
+  $("lessonArea").innerHTML = `<div class="card"><h2>Content Deleted</h2><p class="muted">Select another lesson from the sidebar.</p></div>`;
+  toast("Content deleted.");
 }
 </script>
 </body>
