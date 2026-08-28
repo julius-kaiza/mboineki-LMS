@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="portalDocTitle">Professional Portal with Live Sessions & Admin Controls</title>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-slate: #f8fafc;
+            --text-main: #1e293b;
+            --border-color: #cbd5e1;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-slate);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 15px 30px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        #camera-container {
+            width: 100%;
+            height: 320px;
+            background: #000;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0 20px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .hidden { display: none; }
+        .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2 id="portal-title">Professional Portal</h2>
+        <div>
+            <button class="btn" id="admin-toggle-btn" onclick="openAdminAuthModal()">Admin Login</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Left Column: Live Session & Screen Sharing Stream -->
+        <div>
+            <div class="card">
+                <h3>Live Session & Screen Share</h3>
+                <p>Broadcast your camera feed or share your screen securely with participants.</p>
+                <div id="camera-container">
+                    <video id="live-webcam" autoplay playsinline muted></video>
+                </div>
+                <div class="row" style="margin-top: 15px;">
+                    <button class="btn" onclick="startCamera()">Start Camera</button>
+                    <button class="btn" style="background-color: #10b981;" onclick="startScreenShare()">Share Screen</button>
+                    <button class="btn" style="background-color: #ef4444;" onclick="stopStream()">Stop Feed</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Admin Management Suite -->
+        <div>
+            <div class="card hidden" id="admin-panel">
+                <h3>Admin Management Suite</h3>
+                <p>Rename or modify portal settings securely.</p>
+                
+                <label>Change Portal Title:</label>
+                <input type="text" id="new-title-input" placeholder="Enter new portal name...">
+                <button class="btn" onclick="updatePortalName()">Rename Portal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secure Auth Modal -->
+    <div class="modal" id="auth-modal">
+        <div class="modal-content">
+            <h3>Admin Authentication</h3>
+            <p style="font-size: 0.9rem; color: #64748b;">Enter secure credentials to unlock administrative privileges.</p>
+            <label>Password:</label>
+            <input type="password" id="admin-pass-input" placeholder="••••••••">
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal()">Cancel</button>
+                <button class="btn" onclick="authenticateAdmin()">Authorize</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+	const CONFIG={ SUPABASE_URL: "https://supabase.com/dashboard/project/ykeeqriqifuhzhjespro/sql/e4c030f1-83db-496f-b32e-760cdc777f74", SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZWVxcmlxaWZ1aHpoamVzcHJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTQyNzIsImV4cCI6MjEwMzQ3MDI3Mn0.AvLByu1hD0bGDPO-Bn7emQ1GMx-iXUab4BxEwQC8FzA" };
+    const hasBackend = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
+    
+        let activeStream = null;
+
+        async function startCamera() {
+            try {
+                if (activeStream) {
+                    stopStream();
+                }
+                activeStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const videoEl = document.getElementById('live-webcam');
+                videoEl.srcObject = activeStream;
+            } catch (error) {
+                alert("Unable to access camera. Please check permissions and ensure you are running via localhost or HTTPS.");
+                console.error(error);
+            }
+        }
+
+        async function startScreenShare() {
+            try {
+                if (activeStream) {
+                    stopStream();
+                }
+                activeStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                const videoEl = document.getElementById('live-webcam');
+                videoEl.srcObject = activeStream;
+                
+                // Handle native browser screen share stop button click
+                activeStream.getVideoTracks()[0].onended = () => {
+                    stopStream();
+                };
+            } catch (error) {
+                alert("Unable to share screen. Permission denied or canceled.");
+                console.error(error);
+            }
+        }
+
+        function stopStream() {
+            // Stop all tracks inside the active stream
+            if (activeStream) {
+                activeStream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                activeStream = null;
+            }
+
+            // Clean up video element reference completely
+            const videoEl = document.getElementById('live-webcam');
+            if (videoEl) {
+                videoEl.pause();
+                videoEl.srcObject = null;
+                videoEl.load(); // Forces the element to clear its media buffer
+            }
+        }
+
+        const secureAdminKey = "ChangeMe123!";
+
+        function openAdminAuthModal() {
+            document.getElementById('auth-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('auth-modal').style.display = 'none';
+        }
+
+        function authenticateAdmin() {
+            const inputVal = document.getElementById('admin-pass-input').value;
+            if (inputVal === secureAdminKey) {
+                document.getElementById('admin-panel').classList.remove('hidden');
+                
+                const toggleBtn = document.getElementById('admin-toggle-btn');
+                toggleBtn.innerText = "Admin Active";
+                toggleBtn.style.backgroundColor = "#10b981";
+                
+                closeModal();
+                alert("Admin access granted successfully.");
+            } else {
+                alert("Incorrect administrative password.");
+            }
+            document.getElementById('admin-pass-input').value = "";
+        }
+
+        function updatePortalName() {
+            const newTitle = document.getElementById('new-title-input').value.trim();
+            if (newTitle) {
+                document.getElementById('portal-title').innerText = newTitle;
+                document.getElementById('portalDocTitle').innerText = newTitle;
+                alert("Portal renamed successfully.");
+                document.getElementById('new-title-input').value = "";
+            } else {
+                alert("Please enter a valid name.");
+            }
+        }
+    </script>
+</body>
+</html>
