@@ -94,8 +94,8 @@ const CONFIG={
   DEFAULT_TITLE:"Mboineki LMS",
   ADMIN_EMAIL:"julius.kaiza@gmail.com",
   // Change to "PRODUCTION" when your Google Pay merchant ID is configured
-  GOOGLE_PAY_ENVIRONMENT:"PRODUCTION", 
-  GOOGLE_PAY_MERCHANT_ID:"BCR2DN6D3KP7TTTC" // Optional in TEST mode
+  GOOGLE_PAY_ENVIRONMENT:"TEST", 
+  GOOGLE_PAY_MERCHANT_ID:"" // Optional in TEST mode
 };
 const sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);
 const KEYS={session:"mboino_ent_session"};
