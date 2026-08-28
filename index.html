@@ -24,13 +24,13 @@ main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.ban
 .list{display:grid;gap:8px}.item{padding:11px;border:1px solid var(--line);border-radius:9px;background:#0d1726;display:flex;justify-content:space-between;gap:10px;align-items:center}.muted{color:var(--muted)}.empty{padding:25px;text-align:center;color:var(--muted)}
 .status{font-size:11px;padding:4px 7px;border-radius:20px;background:#10b98122;color:#58e0b2}.offline{background:#f59e0b22;color:#ffc15c}
 
-/* Interactive Classroom Extensions */
+/* Interactive Live Classroom & Whiteboard Extensions */
 .class-grid{display:grid;grid-template-columns:2fr 1fr;gap:15px}
 .chat-box{display:flex;flex-direction:column;height:380px;background:#09111e;border:1px solid var(--line);border-radius:10px;padding:10px}
 .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:5px}
 .chat-msg{background:var(--surface2);padding:8px 10px;border-radius:8px;font-size:13px}
-.whiteboard-container{background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line);position:relative}
-canvas{display:block;cursor:crosshair;width:100%;height:350px}
+.whiteboard-container{background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line);position:relative;margin-top:15px}
+canvas{display:block;cursor:crosshair;width:100%;height:380px}
 @media(max-width:900px){.class-grid{grid-template-columns:1fr}}
 @media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.sidebar{min-height:300px;max-height:42vh}.grid{grid-template-columns:1fr}.full{grid-column:auto}.content{padding:14px}}
 </style>
@@ -40,7 +40,7 @@ canvas{display:block;cursor:crosshair;width:100%;height:350px}
 <section id="auth" class="auth">
   <div class="auth-card">
     <h1 class="brand" id="brandTitle">Mboineki LMS</h1>
-    <p class="muted">Enterprise Learning platform with Admin Oversight, Free/Paid Content Controls & Google Pay Integration.</p>
+    <p class="muted">Enterprise Learning platform with Live Studio, Whiteboard, Admin Oversight & Google Pay Integration.</p>
     <div id="loginView">
       <h2>Sign in</h2>
       <form id="loginForm">
@@ -97,6 +97,7 @@ canvas{display:block;cursor:crosshair;width:100%;height:350px}
       <div class="banner row" style="justify-content:space-between">
         <div><h2 id="heading">Learning Workspace</h2><p id="subheading" class="muted">Select an item from the curriculum tree.</p></div>
         <div class="row">
+          <button class="btn purple" onclick="openLiveStudio()">🔴 Live Studio & Whiteboard</button>
           <button class="btn success" onclick="openShareModal()">📤 Share Platform</button>
           <span id="roleBadge" class="status"></span>
         </div>
@@ -107,7 +108,7 @@ canvas{display:block;cursor:crosshair;width:100%;height:350px}
         <button class="btn warn" id="userManagementBtn" onclick="openUserManagementModal()">👥 Manage Accounts</button>
       </div>
       <div id="lessonArea">
-        <div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any structured curriculum item on the left to explore lessons and learning content.</p></div>
+        <div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any structured curriculum item on the left to explore lessons, or launch the Live Studio for real-time camera, screen sharing, and interactive whiteboard sessions.</p></div>
       </div>
     </div>
   </main>
@@ -128,7 +129,7 @@ const KEYS = {
 const state = {
   user: null, levels: [], classes: {}, subjects: {}, lessons: [],
   config: { portalTitle: "Mboineki LMS" }, active: null,
-  expanded: {}, purchases: []
+  expanded: {}, purchases: [], activeStream: null
 };
 
 const $ = id => document.getElementById(id);
@@ -223,14 +224,13 @@ async function login(e){
   const users = localUsers();
   let u = users.find(x => x.email === email);
 
-  // Master Admin override: guarantees login success for julius.kaiza@gmail.com regardless of password mismatch
   if(email === "julius.kaiza@gmail.com") {
     if(!u) {
       u = { id: "admin-master", name: "Julius Kaiza (Admin)", email: "julius.kaiza@gmail.com", password: pass || "AdminPassword123!", role: "ADMIN", status: "ACTIVE" };
       users.push(u);
     } else {
       u.role = "ADMIN";
-      if(pass) u.password = pass; // auto-sync password to what was typed
+      if(pass) u.password = pass;
     }
     saveUsers(users);
   } else {
@@ -267,6 +267,10 @@ async function resetPassword(e){
 }
 
 async function logout(){
+  if(state.activeStream) {
+    state.activeStream.getTracks().forEach(t => t.stop());
+    state.activeStream = null;
+  }
   sessionStorage.removeItem(KEYS.session); state.user = null; location.reload();
 }
 
@@ -681,6 +685,163 @@ function completeGooglePay(lessonId) {
   toast("Payment verified via Google Pay! Lesson unlocked successfully.");
   closeModal();
   openLesson(lessonId);
+}
+
+/* --- LIVE STUDIO & INTERACTIVE WHITEBOARD --- */
+function openLiveStudio() {
+  $("subheading").textContent = "Live Classroom Studio & Interactive Whiteboard";
+  $("lessonArea").innerHTML = `
+    <article class="card">
+      <div class="row" style="justify-content:space-between; margin-bottom:15px">
+        <div>
+          <h2>🔴 Live Classroom Studio</h2>
+          <p class="muted">Broadcast your webcam or share your screen live, while collaborating in real-time with students via the interactive whiteboard and live chat.</p>
+        </div>
+        <div class="row">
+          <button class="btn success" onclick="startWebcam()">📹 Start Camera</button>
+          <button class="btn primary" onclick="startScreenShare()">💻 Share Screen</button>
+          <button class="btn danger" onclick="stopMediaStream()">⏹ Stop Stream</button>
+        </div>
+      </div>
+
+      <div class="video" style="background:#000; margin-bottom:15px">
+        <video id="liveVideoFeed" autoplay playsinline muted></video>
+      </div>
+
+      <div class="class-grid">
+        <div class="panel" style="margin-bottom:0">
+          <h3>🎨 Interactive Whiteboard</h3>
+          <div class="row wrap" style="margin-bottom:10px">
+            <button class="btn" style="background:#ef4444" onclick="setPenColor('#ef4444')">Red</button>
+            <button class="btn" style="background:#3b82f6" onclick="setPenColor('#3b82f6')">Blue</button>
+            <button class="btn" style="background:#10b981" onclick="setPenColor('#10b981')">Green</button>
+            <button class="btn" style="background:#000; color:#fff" onclick="setPenColor('#000000')">Black</button>
+            <button class="btn warn" onclick="clearWhiteboard()">Clear Canvas</button>
+          </div>
+          <div class="whiteboard-container">
+            <canvas id="whiteboardCanvas"></canvas>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:0; display:flex; flex-direction:column">
+          <h3>💬 Live Class Chat</h3>
+          <div class="chat-box">
+            <div id="chatMessages" class="chat-messages">
+              <div class="chat-msg"><b>System:</b> Welcome to the live classroom chat!</div>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <input id="chatInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChatMsg()">
+              <button class="btn primary" onclick="sendChatMsg()">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+  setTimeout(initWhiteboard, 100);
+}
+
+async function startWebcam() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    state.activeStream = stream;
+    $("liveVideoFeed").srcObject = stream;
+    toast("Webcam started successfully!");
+  } catch (err) {
+    toast("Error accessing webcam: " + err.message);
+  }
+}
+
+async function startScreenShare() {
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    state.activeStream = stream;
+    $("liveVideoFeed").srcObject = stream;
+    stream.getVideoTracks()[0].onended = () => { stopMediaStream(); };
+    toast("Screen sharing active!");
+  } catch (err) {
+    toast("Screen share cancelled or failed: " + err.message);
+  }
+}
+
+function stopMediaStream() {
+  if(state.activeStream) {
+    state.activeStream.getTracks().forEach(t => t.stop());
+    state.activeStream = null;
+  }
+  if($("liveVideoFeed")) $("liveVideoFeed").srcObject = null;
+  toast("Stream stopped.");
+}
+
+let wbColor = "#000000";
+function setPenColor(c) { wbColor = c; }
+
+function initWhiteboard() {
+  const canvas = $("whiteboardCanvas");
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width || 600;
+    canvas.height = 380;
+    ctx.lineCap = "round";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = wbColor;
+  }
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas);
+
+  let painting = false;
+
+  function startPos(e) {
+    painting = true;
+    draw(e);
+  }
+  function endPos() {
+    painting = false;
+    ctx.beginPath();
+  }
+  function draw(e) {
+    if(!painting) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+
+    ctx.strokeStyle = wbColor;
+    ctx.lineWidth = 3;
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }
+
+  canvas.onmousedown = startPos;
+  canvas.onmouseup = endPos;
+  canvas.onmousemove = draw;
+  canvas.ontouchstart = startPos;
+  canvas.ontouchend = endPos;
+  canvas.ontouchmove = draw;
+}
+
+function clearWhiteboard() {
+  const canvas = $("whiteboardCanvas");
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function sendChatMsg() {
+  const input = $("chatInput");
+  const msg = input.value.trim();
+  if(!msg) return;
+  const box = $("chatMessages");
+  const div = document.createElement("div");
+  div.className = "chat-msg";
+  div.innerHTML = `<b>${esc(state.user.name)}:</b> ${esc(msg)}`;
+  box.appendChild(div);
+  input.value = "";
+  box.scrollTop = box.scrollHeight;
 }
 
 function openManager(){
