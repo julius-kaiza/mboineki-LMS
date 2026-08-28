@@ -30,14 +30,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0
 .tree-lesson.active{background:var(--primary)!important;color:white!important}
 main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.banner,.card,.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
 .video{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:12px;overflow:hidden;margin:15px 0}.video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
-.meeting{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#0a1523;border:1px solid var(--line);padding:14px;border-radius:11px;margin:12px 0}
-.chat{height:560px;display:flex;flex-direction:column;background:#0a121b;border:1px solid var(--line);border-radius:14px;overflow:hidden}.chat-head{padding:12px 15px;background:#162330;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.messages{flex:1;overflow:auto;padding:15px;display:flex;flex-direction:column;gap:9px}.msg{max-width:76%;align-self:flex-start}.msg.mine{align-self:flex-end}.bubble{background:#1d2b38;padding:9px 12px;border-radius:10px}.mine .bubble{background:#075e54}.sender{font-size:11px;color:#63c6ee;margin-bottom:3px}.meta{font-size:10px;color:#91a1b1;text-align:right;margin-top:4px}
 .modal{position:fixed;inset:0;background:#0009;display:none;place-items:center;padding:18px;z-index:50}.modal.open{display:grid}.modal-box{width:min(720px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:20px}
 .list{display:grid;gap:8px}.item{padding:11px;border:1px solid var(--line);border-radius:9px;background:#0d1726;display:flex;justify-content:space-between;gap:10px;align-items:center}.muted{color:var(--muted)}.empty{padding:25px;text-align:center;color:var(--muted)}
-.lock{border:2px dashed var(--warn);background:#f59e0b12;text-align:center;padding:35px;border-radius:12px}
 .status{font-size:11px;padding:4px 7px;border-radius:20px;background:#10b98122;color:#58e0b2}.offline{background:#f59e0b22;color:#ffc15c}
 canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;width:100%;cursor:crosshair;touch-action:none}
-@media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.sidebar{min-height:300px;max-height:42vh}.grid{grid-template-columns:1fr}.full{grid-column:auto}.content{padding:14px}.meeting{flex-direction:column;text-align:center}.chat{height:500px}.msg{max-width:88%}}
+@media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.sidebar{min-height:300px;max-height:42vh}.content{padding:14px}}
 </style>
 </head>
 <body>
@@ -45,7 +42,7 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
 <section id="auth" class="auth">
   <div class="auth-card">
     <h1 class="brand" id="brandTitle">Mboineki LMS</h1>
-    <p class="muted">Enterprise Learning platform with advanced live video, screen sharing, collapsible curriculum folders, and instant sharing.</p>
+    <p class="muted">Enterprise Learning platform with Supabase Cloud Sync and collapsible curriculum folders.</p>
     <div id="loginView">
       <h2>Sign in</h2>
       <form id="loginForm">
@@ -67,7 +64,6 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
       </form>
       <p class="muted">Already registered? <span class="link" onclick="showAuth('login')">Sign in</span></p>
     </div>
-    <small id="modeNote" class="muted" style="margin-top:15px;display:block"></small>
   </div>
 </section>
 
@@ -119,16 +115,16 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
 const CONFIG={ SUPABASE_URL: "https://ykeeqriqifuhzhjespro.supabase.co", SUPABASE_ANON_KEY: "sb_publishable_h6numkplMPSASwLP_I64Og_fQErzIVC" };
 const hasBackend = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
 const sb = hasBackend ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
-  
+
 const KEYS = {
   levels: "mboino_ent_levels", classes: "mboino_ent_classes", subjects: "mboino_ent_subjects",
   lessons: "mboino_ent_lessons", courses: "mboino_ent_courses", users: "mboino_ent_users",
-  teachers: "mboino_ent_teachers", config: "mboino_ent_config", notifs: "mboino_ent_notifs", session: "mboino_ent_session"
+  notifs: "mboino_ent_notifs", session: "mboino_ent_session"
 };
 
 const state = {
   user: null, levels: [], classes: {}, subjects: {}, lessons: [], courses: [],
-  notifications: [], config: { portalTitle: "Mboineki LMS" }, active: null, localStream: null
+  notifications: [], active: null
 };
 
 const $ = id => document.getElementById(id);
@@ -136,16 +132,44 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const uid = p => p + "_" + crypto.randomUUID();
 function toast(msg){ alert(msg); }
 
-function saveLocal(){
-  localStorage.setItem(KEYS.levels, JSON.stringify(state.levels));
-  localStorage.setItem(KEYS.classes, JSON.stringify(state.classes));
-  localStorage.setItem(KEYS.subjects, JSON.stringify(state.subjects));
-  localStorage.setItem(KEYS.lessons, JSON.stringify(state.lessons));
-  localStorage.setItem(KEYS.courses, JSON.stringify(state.courses));
-  localStorage.setItem(KEYS.notifs, JSON.stringify(state.notifications));
-}
+async function loadData(){
+  if(hasBackend) {
+    try {
+      const [lvlRes, clsRes, subRes, lesRes, crsRes, notRes] = await Promise.all([
+        sb.from('levels').select('*'),
+        sb.from('classes').select('*'),
+        sb.from('subjects').select('*'),
+        sb.from('lessons').select('*'),
+        sb.from('courses').select('*'),
+        sb.from('notifications').select('*')
+      ]);
 
-function loadLocal(){
+      if(!lvlRes.error && lvlRes.data) {
+        state.levels = lvlRes.data.map(x => x.name);
+        state.classes = {};
+        if(clsRes.data) {
+          clsRes.data.forEach(c => {
+            if(!state.classes[c.level]) state.classes[c.level] = [];
+            state.classes[c.level].push(c.name);
+          });
+        }
+        state.subjects = {};
+        if(subRes.data) {
+          subRes.data.forEach(s => {
+            const key = `${s.level}_${s.class_name}`;
+            if(!state.subjects[key]) state.subjects[key] = [];
+            state.subjects[key].push(s.name);
+          });
+        }
+        state.lessons = lesRes.data || [];
+        state.courses = crsRes.data || [];
+        state.notifications = notRes.data || [];
+        return;
+      }
+    } catch(e) { console.warn("Supabase fetch failed, fallback to local storage", e); }
+  }
+  
+  // Local fallback storage
   try {
     if(!localStorage.getItem(KEYS.users)) {
       saveUsers([
@@ -160,6 +184,15 @@ function loadLocal(){
     state.courses = JSON.parse(localStorage.getItem(KEYS.courses) || '[{"id":"c1","title":"Fullstack Web Engineering","description":"Professional software creation masterclass."}]');
     state.notifications = JSON.parse(localStorage.getItem(KEYS.notifications) || '[{"id":"n1","title":"System Online","message":"Welcome to Mboineki LMS Enterprise Edition.","time":"Just now"}]');
   } catch(e) { console.error("Local loading error", e); }
+}
+
+function saveLocalCache(){
+  localStorage.setItem(KEYS.levels, JSON.stringify(state.levels));
+  localStorage.setItem(KEYS.classes, JSON.stringify(state.classes));
+  localStorage.setItem(KEYS.subjects, JSON.stringify(state.subjects));
+  localStorage.setItem(KEYS.lessons, JSON.stringify(state.lessons));
+  localStorage.setItem(KEYS.courses, JSON.stringify(state.courses));
+  localStorage.setItem(KEYS.notifs, JSON.stringify(state.notifications));
 }
 
 function localUsers(){ try { return JSON.parse(localStorage.getItem(KEYS.users) || "[]"); } catch { return []; } }
@@ -185,8 +218,8 @@ function isAdmin(){ return state.user?.role === "ADMIN" || state.user?.role === 
 
 function showAuth(view){ ["login", "signup"].forEach(v => $(`${v}View`).classList.toggle("hidden", v !== view)); }
 
-function init(){
-  loadLocal();
+async function init(){
+  await loadData();
   const s = sessionStorage.getItem(KEYS.session);
   if(s) { state.user = JSON.parse(s); bootUI(); } else showAuth("login");
 }
@@ -195,8 +228,8 @@ function bootUI(){
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
   $("profileName").textContent = state.user.name; $("profileRole").textContent = state.user.role;
   $("roleBadge").textContent = state.user.role;
-  $("modeBadge").textContent = "Local Storage Mode";
-  $("modeBadge").classList.add("offline");
+  $("modeBadge").textContent = hasBackend ? "Supabase Cloud Mode" : "Local Storage Mode";
+  if(!hasBackend) $("modeBadge").classList.add("offline");
   $("adminTools").classList.toggle("hidden", !isAdmin());
   updateNotifBadge(); renderTree();
   if(state.lessons.length) openLesson(state.lessons[0].id);
@@ -343,7 +376,6 @@ function openLesson(id){
   $("subheading").textContent = `${l.level} › ${l.class} › ${l.subject}`;
   
   let media = youtubeBlock(l.video_url || "");
-  
   const edit = isAdmin() ? `<button class="btn warn" onclick="editLesson('${l.id}')">Edit</button>` : "";
   const del = isAdmin() ? `<button class="btn danger" onclick="deleteLesson('${l.id}')">Delete</button>` : "";
 
@@ -369,7 +401,6 @@ function openLesson(id){
   initWhiteboard();
 }
 
-function openModal(id){ $("modal").classList.add("open"); }
 function openModalContent(html){ $("modalBox").innerHTML = html; $("modal").classList.add("open"); }
 function closeModal(){ $("modal").classList.remove("open"); }
 
@@ -389,35 +420,47 @@ function openNotificationsModal(){
 
 function openManager(){
   openModalContent(`
-    <h2>📂 Manage Education Levels</h2>
+    <h2>📂 Manage Education Levels & Classes</h2>
     <div class="list">
-      ${state.levels.map(lvl => `<div class="item"><strong>${esc(lvl)}</strong><button class="btn danger" onclick="deleteLevel('${esc(lvl)}')">Delete</button></div>`).join("")}
+      ${state.levels.map(lvl => `
+        <div class="item">
+          <div><strong>${esc(lvl)}</strong><div class="muted" style="font-size:12px">Classes: ${(state.classes[lvl]||[]).join(", ") || "None"}</div></div>
+          <button class="btn danger" onclick="deleteLevel('${esc(lvl)}')">Delete Level</button>
+        </div>
+      `).join("")}
     </div>
     <div class="card" style="margin-top:15px">
-      <h3>Add Level</h3>
-      <input id="newLevelName" placeholder="Level name" style="margin-bottom:8px">
+      <h3>Add New Level</h3>
+      <input id="newLevelName" placeholder="Level name (e.g. High School)" style="margin-bottom:8px">
       <button class="btn success" onclick="addLevel()">Add Level</button>
     </div>
     <div style="margin-top:20px;text-align:right"><button class="btn" onclick="closeModal()">Close</button></div>
   `);
 }
 
-function addLevel(){
+async function addLevel(){
   const name = $("newLevelName").value.trim();
   if(!name || state.levels.includes(name)) return;
+  
+  if(hasBackend) {
+    await sb.from('levels').insert([{ name }]);
+  }
   state.levels.push(name);
   state.classes[name] = [];
-  saveLocal();
+  saveLocalCache();
   closeModal();
   renderTree();
   toast("Level added successfully.");
 }
 
-function deleteLevel(lvl){
-  if(!confirm(`Delete level "${lvl}" and its classes?`)) return;
+async function deleteLevel(lvl){
+  if(!confirm(`Delete level "${lvl}" and all nested contents?`)) return;
+  if(hasBackend) {
+    await sb.from('levels').delete().eq('name', lvl);
+  }
   state.levels = state.levels.filter(x => x !== lvl);
   delete state.classes[lvl];
-  saveLocal();
+  saveLocalCache();
   closeModal();
   renderTree();
   if(state.lessons.length) openLesson(state.lessons[0].id);
@@ -441,21 +484,24 @@ function openCourseManager(){
   `);
 }
 
-function createCourse(){
+async function createCourse(){
   const title = $("newCourseTitle").value.trim();
   const description = $("newCourseDesc").value.trim();
   if(!title) return;
-  state.courses.push({ id: uid("crs"), title, description });
-  saveLocal();
+  const newC = { id: uid("crs"), title, description };
+  if(hasBackend) { await sb.from('courses').insert([newC]); }
+  state.courses.push(newC);
+  saveLocalCache();
   closeModal();
   renderTree();
   toast("Course created.");
 }
 
-function deleteCourse(id){
+async function deleteCourse(id){
   if(!confirm("Delete this course?")) return;
+  if(hasBackend) { await sb.from('courses').delete().eq('id', id); }
   state.courses = state.courses.filter(x => x.id !== id);
-  saveLocal();
+  saveLocalCache();
   closeModal();
   renderTree();
   $("lessonArea").innerHTML = `<div class="card"><h2>Course deleted</h2></div>`;
@@ -464,40 +510,50 @@ function deleteCourse(id){
 
 function openLessonModal(){
   openModalContent(`
-    <h2>+ Create New Lesson</h2>
+    <h2>+ Create New Lesson & Curriculum Folder</h2>
     <label>Title</label><input id="lesTitle" required>
-    <label>Level</label><select id="lesLevel">${state.levels.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select>
-    <label>Class</label><input id="lesClass" placeholder="e.g. Grade 5">
-    <label>Subject</label><input id="lesSubject" placeholder="e.g. Mathematics">
+    <label>Education Level</label><select id="lesLevel">${state.levels.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select>
+    <label>Class Folder Name</label><input id="lesClass" placeholder="e.g. Grade 5 / Form 3" required>
+    <label>Subject Folder Name</label><input id="lesSubject" placeholder="e.g. Mathematics / Physics" required>
     <label>YouTube Video URL</label><input id="lesVideo" placeholder="https://www.youtube.com/watch?v=...">
     <label>Lesson Notes</label><textarea id="lesNotes"></textarea>
-    <button class="btn success" style="margin-top:15px;width:100%" onclick="saveNewLesson()">Save Lesson</button>
+    <button class="btn success" style="margin-top:15px;width:100%" onclick="saveNewLesson()">Save & Align to Folder</button>
   `);
 }
 
-function saveNewLesson(){
+async function saveNewLesson(){
   const title = $("lesTitle").value.trim();
   const level = $("lesLevel").value;
-  const cls = $("lesClass").value.trim() || "General Class";
-  const subject = $("lesSubject").value.trim() || "General Subject";
+  const cls = $("lesClass").value.trim();
+  const subject = $("lesSubject").value.trim();
   const video_url = $("lesVideo").value.trim();
   const notes = $("lesNotes").value;
   
-  if(!title) return toast("Lesson title required.");
+  if(!title || !cls || !subject) return toast("Title, Class folder, and Subject folder are required.");
   
   if(!state.classes[level]) state.classes[level] = [];
-  if(!state.classes[level].includes(cls)) state.classes[level].push(cls);
+  if(!state.classes[level].includes(cls)) {
+    state.classes[level].push(cls);
+    if(hasBackend) await sb.from('classes').insert([{ level, name: cls }]);
+  }
+
   const subKey = `${level}_${cls}`;
   if(!state.subjects[subKey]) state.subjects[subKey] = [];
-  if(!state.subjects[subKey].includes(subject)) state.subjects[subKey].push(subject);
+  if(!state.subjects[subKey].includes(subject)) {
+    state.subjects[subKey].push(subject);
+    if(hasBackend) await sb.from('subjects').insert([{ level, class_name: cls, name: subject }]);
+  }
 
   const newLes = { id: uid("les"), title, level, class: cls, subject, video_url, notes };
+  if(hasBackend) {
+    await sb.from('lessons').insert([newLes]);
+  }
   state.lessons.push(newLes);
-  saveLocal();
+  saveLocalCache();
   closeModal();
   renderTree();
   openLesson(newLes.id);
-  toast("Lesson saved successfully.");
+  toast("Lesson saved & strictly aligned to folder hierarchy!");
 }
 
 function editLesson(id){
@@ -512,22 +568,29 @@ function editLesson(id){
   `);
 }
 
-function updateLesson(id){
+async function updateLesson(id){
   const l = state.lessons.find(x => x.id === id);
   if(!l) return;
   l.title = $("editTitle").value.trim();
   l.video_url = $("editVideo").value.trim();
   l.notes = $("editNotes").value;
-  saveLocal();
+  
+  if(hasBackend) {
+    await sb.from('lessons').update({ title: l.title, video_url: l.video_url, notes: l.notes }).eq('id', id);
+  }
+  saveLocalCache();
   closeModal();
   openLesson(id);
   toast("Lesson updated successfully.");
 }
 
-function deleteLesson(id){
+async function deleteLesson(id){
   if(!confirm("Are you sure you want to delete this lesson?")) return;
+  if(hasBackend) {
+    await sb.from('lessons').delete().eq('id', id);
+  }
   state.lessons = state.lessons.filter(x => x.id !== id);
-  saveLocal();
+  saveLocalCache();
   renderTree();
   $("lessonArea").innerHTML = `<div class='card'><h2>Lesson deleted</h2></div>`;
   if(state.lessons.length) openLesson(state.lessons[0].id);
@@ -539,25 +602,4 @@ function initWhiteboard(){
   if(!canvas) return;
   const ctx = canvas.getContext("2d");
   let drawing = false;
-  canvas.onmousedown = (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
-  canvas.onmousemove = (e) => {
-    if(!drawing) return;
-    ctx.strokeStyle = $("wbColor") ? $("wbColor").value : "#3b82f6";
-    ctx.lineWidth = 3;
-    ctx.lineTo(e.offsetX, e.offsetY);
-    ctx.stroke();
-  };
-  window.onmouseup = () => { drawing = false; };
-}
-
-function clearWhiteboard(){
-  const canvas = $("whiteboardCanvas");
-  if(!canvas) return;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-window.onload = init;
-</script>
-</body>
-</html>
+  canvas.onmousedown = (e) => { drawing = true; ctx.beginPath();
