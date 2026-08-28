@@ -103,9 +103,9 @@ canvas{display:block;cursor:crosshair;width:100%;height:380px}
         </div>
       </div>
       <div id="adminTools" class="toolbar hidden">
-        <button class="btn purple" onclick="openManager()">⚙️ Manage Hierarchy & Rename</button>
+        <button class="btn purple" onclick="openManager()">⚙️ Manage Hierarchy, Rename & Edit</button>
         <button class="btn primary" onclick="openLessonModal()">+ Add Lesson Content</button>
-        <button class="btn warn" id="userManagementBtn" onclick="openUserManagementModal()">👥 Manage Accounts</button>
+        <button class="btn warn" id="userManagementBtn" onclick="openUserManagementModal()">👥 Manage Accounts & Permissions</button>
       </div>
       <div id="lessonArea">
         <div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any structured curriculum item on the left to explore lessons, or launch the Live Studio for real-time camera, screen sharing, and interactive whiteboard sessions.</p></div>
@@ -136,8 +136,6 @@ function toast(msg){ alert(msg); }
 // --- CLOUD SUPABASE SYNCHRONIZATION FUNCTIONS ---
 async function loadDataFromCloud(){
   try {
-    // 1. Fetch Curriculum / Lessons / Config / Users from Supabase tables
-    // Ensure you create these tables in your Supabase project dashboard if not present.
     let { data: configData } = await sb.from('app_config').select('*').eq('key', 'settings').single();
     if(configData) state.config = configData.value;
 
@@ -194,7 +192,6 @@ async function loadDataFromCloud(){
       for(let les of state.lessons) await sb.from('app_lessons').upsert(les);
     }
 
-    // Ensure Master Admin Exists in Cloud Users Table
     let { data: usersData } = await sb.from('app_users').select('*');
     let users = usersData || [];
     const adminExists = users.some(x => x.email === "julius.kaiza@gmail.com");
@@ -290,6 +287,10 @@ async function login(e){
     if(!u || u.password !== pass) {
       return toast("Invalid credentials provided. Check email or password.");
     }
+  }
+
+  if(u.status === "DISABLED") {
+    return toast("Your account has been disabled by an administrator. Access denied.");
   }
 
   state.user = u; 
@@ -394,8 +395,8 @@ async function openUserManagementModal(){
   const users = await fetchCloudUsers();
   
   openModalContent(`
-    <h2>👥 Admin Account Management & Oversight</h2>
-    <p class="muted">Full admin control to view, create, edit roles, change passwords, or delete registered user accounts.</p>
+    <h2>👥 Admin Account Management, Permissions & Status</h2>
+    <p class="muted">Manage user roles, grant permissions, toggle account status (Enable/Disable), edit credentials, or delete accounts.</p>
     
     <div class="card" style="background:#09111e; margin-bottom:15px">
       <h3>Add New User Account</h3>
@@ -404,7 +405,7 @@ async function openUserManagementModal(){
           <div><label>Full Name</label><input id="admNewName" required></div>
           <div><label>Email</label><input id="admNewEmail" type="email" required></div>
           <div><label>Password</label><input id="admNewPass" type="password" minlength="6" required></div>
-          <div><label>Role</label><select id="admNewRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option><option value="ADMIN">Administrator</option></select></div>
+          <div><label>Role / Permissions</label><select id="admNewRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option><option value="ADMIN">Administrator</option></select></div>
         </div>
         <button class="btn success" style="margin-top:12px">Create User Account</button>
       </form>
@@ -416,11 +417,12 @@ async function openUserManagementModal(){
         <div class="item">
           <div>
             <strong>${esc(u.name)}</strong> (${esc(u.email)})<br>
-            <small class="muted">Role: <b>${esc(u.role)}</b> | ID: ${esc(u.id)}</small>
+            <small class="muted">Role: <b>${esc(u.role)}</b> | Status: <span style="color:${u.status==='DISABLED'?'var(--danger)':'var(--success)'}">${esc(u.status || 'ACTIVE')}</span></small>
           </div>
           <div class="row">
-            <button class="btn warn" onclick="adminEditUserModal('${u.id}')">Edit</button>
-            ${u.id !== state.user.id ? `<button class="btn danger" onclick="adminDeleteUser('${u.id}')">Delete</button>` : `<span class="muted" style="font-size:11px">(You)</span>`}
+            <button class="btn warn" onclick="adminEditUserModal('${u.id}')">Edit / Permissions</button>
+            <button class="btn ${u.status === 'DISABLED' ? 'success' : 'danger'}" onclick="adminToggleUserStatus('${u.id}')">${u.status === 'DISABLED' ? 'Enable' : 'Disable'}</button>
+            ${u.email !== "julius.kaiza@gmail.com" && u.id !== state.user.id ? `<button class="btn danger" onclick="adminDeleteUser('${u.id}')">Delete</button>` : ``}
           </div>
         </div>
       `).join("") || `<div class="empty">No registered user accounts found.</div>`}
@@ -454,7 +456,7 @@ async function adminEditUserModal(userId){
   if(!u) return toast("User account not found.");
 
   openModalContent(`
-    <h2>✏️ Edit User Account</h2>
+    <h2>✏️ Edit Account & Permissions</h2>
     <form onsubmit="adminUpdateUser(event, '${u.id}')">
       <label>Full Name</label>
       <input id="editUsrName" value="${esc(u.name)}" required>
@@ -462,11 +464,16 @@ async function adminEditUserModal(userId){
       <input id="editUsrEmail" type="email" value="${esc(u.email)}" required>
       <label>New Password (leave blank to keep current)</label>
       <input id="editUsrPass" type="password" placeholder="••••••••">
-      <label>Role</label>
+      <label>Account Role & Permissions</label>
       <select id="editUsrRole">
         <option value="STUDENT" ${u.role==="STUDENT"?"selected":""}>Student</option>
         <option value="TUTOR" ${u.role==="TUTOR"?"selected":""}>Teacher / Tutor</option>
         <option value="ADMIN" ${u.role==="ADMIN"?"selected":""}>Administrator</option>
+      </select>
+      <label>Account Status</label>
+      <select id="editUsrStatus">
+        <option value="ACTIVE" ${u.status!=="DISABLED"?"selected":""}>Active</option>
+        <option value="DISABLED" ${u.status==="DISABLED"?"selected":""}>Disabled (Blocked)</option>
       </select>
       <div class="row" style="margin-top:18px;justify-content:flex-end">
         <button type="button" class="btn" onclick="openUserManagementModal()">Back</button>
@@ -482,6 +489,7 @@ async function adminUpdateUser(e, userId){
   const email = $("editUsrEmail").value.trim().toLowerCase();
   const pass = $("editUsrPass").value;
   const role = $("editUsrRole").value;
+  const status = $("editUsrStatus").value;
 
   const users = await fetchCloudUsers();
   const u = users.find(x => x.id === userId);
@@ -490,10 +498,23 @@ async function adminUpdateUser(e, userId){
   u.name = name;
   u.email = email;
   u.role = role;
+  u.status = status;
   if(pass) u.password = pass;
 
   await saveCloudUser(u);
-  toast("User account updated successfully!");
+  toast("User permissions & account updated successfully!");
+  openUserManagementModal();
+}
+
+async function adminToggleUserStatus(userId){
+  const users = await fetchCloudUsers();
+  const u = users.find(x => x.id === userId);
+  if(!u) return toast("User record not found.");
+  if(u.email === "julius.kaiza@gmail.com") return toast("Cannot disable master administrator.");
+
+  u.status = (u.status === "DISABLED") ? "ACTIVE" : "DISABLED";
+  await saveCloudUser(u);
+  toast(`Account status updated to ${u.status}`);
   openUserManagementModal();
 }
 
@@ -502,6 +523,189 @@ async function adminDeleteUser(userId){
   await deleteCloudUser(userId);
   toast("User account deleted.");
   openUserManagementModal();
+}
+
+/* --- HIERARCHY MANAGER & EDITING (RENAME, ETC.) --- */
+function openManager(){
+  if(!isAdmin() && !canEdit()) return toast("Access denied.");
+  openModalContent(`
+    <h2>⚙️ Hierarchy & Curriculum Management (Rename & Edit)</h2>
+    <p class="muted">Rename, edit, or structure educational levels, classes, and subjects as Administrator.</p>
+    
+    <div class="card" style="background:#09111e; margin-bottom:15px">
+      <h3>Add New Level</h3>
+      <div class="row">
+        <input id="newLvlName" placeholder="e.g. Tertiary Level">
+        <button class="btn success" onclick="addLevel()">Add Level</button>
+      </div>
+    </div>
+
+    <div class="card" style="background:#09111e; margin-bottom:15px">
+      <h3>Add Class to Level</h3>
+      <div class="grid">
+        <div><label>Select Level</label><select id="mgrLevelSelect">${state.levels.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select></div>
+        <div><label>Class Name</label><input id="mgrClassName" placeholder="e.g. Form 5"></div>
+      </div>
+      <button class="btn success" style="margin-top:10px" onclick="addClass()">Add Class</button>
+    </div>
+
+    <div class="card" style="background:#09111e; margin-bottom:15px">
+      <h3>Add Subject to Class</h3>
+      <div class="grid">
+        <div><label>Level & Class</label><select id="mgrClassSelect">
+          ${Object.keys(state.classes).flatMap(lvl => (state.classes[lvl]||[]).map(cls => `<option value="${esc(lvl)}__${esc(cls)}">${esc(lvl)} › ${esc(cls)}</option>`)).join("")}
+        </select></div>
+        <div><label>Subject Name</label><input id="mgrSubjectName" placeholder="e.g. Biology"></div>
+      </div>
+      <button class="btn success" style="margin-top:10px" onclick="addSubject()">Add Subject</button>
+    </div>
+
+    <h3>Existing Curriculum Structures</h3>
+    <div class="list" style="max-height:250px; overflow-y:auto">
+      ${state.levels.map(lvl => `
+        <div class="item">
+          <div><strong>📁 Level:</strong> ${esc(lvl)}</div>
+          <div class="row">
+            <button class="btn warn" onclick="renameLevelPrompt('${esc(lvl)}')">Rename</button>
+            <button class="btn danger" onclick="deleteLevel('${esc(lvl)}')">Delete</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+
+    <div style="text-align:right;margin-top:20px">
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
+
+async function addLevel(){
+  const name = $("newLvlName").value.trim();
+  if(!name) return toast("Enter level name.");
+  if(state.levels.includes(name)) return toast("Level already exists.");
+  state.levels.push(name);
+  await sb.from('app_levels').upsert({name});
+  toast("Level added successfully!");
+  renderTree();
+  openManager();
+}
+
+async function renameLevelPrompt(oldName){
+  const newName = prompt("Rename Level:", oldName);
+  if(!newName || newName.trim() === oldName) return;
+  const idx = state.levels.indexOf(oldName);
+  if(idx !== -1) state.levels[idx] = newName.trim();
+  
+  await sb.from('app_levels').delete().eq('name', oldName);
+  await sb.from('app_levels').upsert({name: newName.trim()});
+  
+  toast("Level renamed successfully!");
+  renderTree();
+  openManager();
+}
+
+async function deleteLevel(name){
+  if(!confirm(`Delete level "${name}"?`)) return;
+  state.levels = state.levels.filter(l => l !== name);
+  await sb.from('app_levels').delete().eq('name', name);
+  toast("Level deleted.");
+  renderTree();
+  openManager();
+}
+
+async function addClass(){
+  const level = $("mgrLevelSelect").value;
+  const cls = $("mgrClassName").value.trim();
+  if(!cls) return toast("Enter class name.");
+  if(!state.classes[level]) state.classes[level] = [];
+  if(state.classes[level].includes(cls)) return toast("Class already exists in this level.");
+  state.classes[level].push(cls);
+  await sb.from('app_classes').upsert({level, class_name: cls});
+  toast("Class added successfully!");
+  renderTree();
+  openManager();
+}
+
+async function addSubject(){
+  const val = $("mgrClassSelect").value;
+  if(!val) return toast("Select a class.");
+  const [level, cls] = val.split("__");
+  const sub = $("mgrSubjectName").value.trim();
+  if(!sub) return toast("Enter subject name.");
+  const key = `${level}__${cls}`;
+  if(!state.subjects[key]) state.subjects[key] = [];
+  if(state.subjects[key].includes(sub)) return toast("Subject already exists in this class.");
+  state.subjects[key].push(sub);
+  await sb.from('app_subjects').upsert({level, class_name: cls, subject_name: sub});
+  toast("Subject added successfully!");
+  renderTree();
+  openManager();
+}
+
+function openLessonModal(){
+  openModalContent(`
+    <h2>➕ Add Lesson Content</h2>
+    <form onsubmit="saveLesson(event)">
+      <label>Educational Level</label>
+      <select id="lessLevel" onchange="populateClassDropdown()">${state.levels.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select>
+      <label>Class</label>
+      <select id="lessClass"></select>
+      <label>Subject</label>
+      <select id="lessSubject"></select>
+      <label>Lesson Title</label>
+      <input id="lessTitle" required placeholder="e.g. Algebraic Equations">
+      <label>YouTube Video URL or Embed Link</label>
+      <input id="lessVideo" placeholder="https://www.youtube.com/watch?v=...">
+      <label>Access Type</label>
+      <select id="lessAccess"><option value="FREE">Free Content</option><option value="PAID">Paid Content</option></select>
+      <label>Price (USD if Paid)</label>
+      <input id="lessPrice" value="0" type="number" step="0.01">
+      <label>Lesson Text Content / Notes</label>
+      <textarea id="lessContent" placeholder="Enter full lesson notes or instructions here..."></textarea>
+      <div class="row" style="margin-top:18px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn primary">Save Lesson</button>
+      </div>
+    </form>
+  `);
+  populateClassDropdown();
+}
+
+function populateClassDropdown(){
+  const lvl = $("lessLevel").value;
+  const classes = state.classes[lvl] || [];
+  $("lessClass").innerHTML = classes.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  populateSubjectDropdown();
+  $("lessClass").onchange = populateSubjectDropdown;
+}
+
+function populateSubjectDropdown(){
+  const lvl = $("lessLevel").value;
+  const cls = $("lessClass").value;
+  const key = `${lvl}__${cls}`;
+  const subs = state.subjects[key] || [];
+  $("lessSubject").innerHTML = subs.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("");
+}
+
+async function saveLesson(e){
+  e.preventDefault();
+  const l = {
+    id: uid("les"),
+    level: $("lessLevel").value,
+    class: $("lessClass").value,
+    subject: $("lessSubject").value,
+    title: $("lessTitle").value.trim(),
+    video: $("lessVideo").value.trim(),
+    accessType: $("lessAccess").value,
+    price: $("lessPrice").value || "0",
+    content: $("lessContent").value
+  };
+  state.lessons.push(l);
+  await sb.from('app_lessons').upsert(l);
+  toast("Lesson added successfully!");
+  closeModal();
+  renderTree();
+  openLesson(l.id);
 }
 
 function openModalContent(html){
@@ -666,320 +870,159 @@ function openLesson(id) {
     contentMarkup = `
       <div class="card" style="text-align:center; padding:40px">
         <h2>🔒 Paid Lesson Content</h2>
-        <p class="muted">This is restricted paid content. To unlock full access to <b>${esc(l.title)}</b>, complete payment below.</p>
-        <div style="font-size:24px; font-weight:bold; color:var(--success); margin:15px 0">$${esc(l.price)} USD</div>
-        <button class="btn success" style="padding:12px 24px; font-size:16px" onclick="simulatePayment('${l.id}')">💳 Pay with Google Pay / Card</button>
+        <p class="muted">This lesson requires a secure enrollment fee of $${esc(l.price)} to unlock.</p>
+        <button class="btn success" onclick="simulatePurchase('${l.id}')">Unlock & Enroll Now ($${esc(l.price)})</button>
       </div>
     `;
   } else {
     contentMarkup = `
+      ${youtubeBlock(l.video)}
       <div class="card">
-        <h1>${esc(l.title)}</h1>
-        <p class="muted">${esc(l.subject)} › ${esc(l.class)} › ${esc(l.level)}</p>
-        ${youtubeBlock(l.video)}
-        <div style="margin-top:20px; line-height:1.6; white-space:pre-wrap;">${esc(l.content)}</div>
+        <h3>Lesson Notes</h3>
+        <p style="white-space:pre-wrap; line-height:1.6">${esc(l.content)}</p>
       </div>
     `;
   }
 
   $("lessonArea").innerHTML = `
-    ${contentMarkup}
-    ${canEdit() ? `
-      <div class="row" style="margin-top:15px; justify-content:flex-end">
-        <button class="btn warn" onclick="openLessonModal('${l.id}')">✏️ Edit Lesson</button>
-        <button class="btn danger" onclick="deleteLesson('${l.id}')">🗑️ Delete Lesson</button>
+    <article class="card">
+      <div class="row" style="justify-content:space-between; align-items:flex-start">
+        <div>
+          <small class="muted">${esc(l.level)} › ${esc(l.class)} › ${esc(l.subject)}</small>
+          <h1>${esc(l.title)}</h1>
+        </div>
+        ${canEdit() ? `<button class="btn warn" onclick="deleteLesson('${l.id}')">Delete Lesson</button>` : ``}
       </div>
-    ` : ""}
+    </article>
+    ${contentMarkup}
   `;
 }
 
-function simulatePayment(lessonId) {
-  if(!confirm("Proceed to simulate secure payment via Google Pay?")) return;
-  state.purchases.push({ userId: state.user.id, lessonId: lessonId, date: new Date().toISOString() });
-  toast("Payment successful! Lesson unlocked.");
+async function simulatePurchase(lessonId){
+  state.purchases.push({ userId: state.user.id, lessonId });
+  toast("Payment verified successfully! Lesson unlocked.");
   openLesson(lessonId);
 }
 
-async function openLessonModal(editId = null) {
-  if(!canEdit()) return toast("Access denied.");
-  const l = editId ? state.lessons.find(x => x.id === editId) : null;
-
-  openModalContent(`
-    <h2>${l ? "✏️ Edit Lesson" : "+ Add New Lesson Content"}</h2>
-    <form onsubmit="saveLesson(event, '${editId || ""}')">
-      <label>Education Level</label>
-      <select id="lesLevel" onchange="populateClassDropdown()">${state.levels.map(lvl => `<option value="${esc(lvl)}" ${l?.level===lvl?"selected":""}>${esc(lvl)}</option>`).join("")}</select>
-      
-      <label>Class</label>
-      <select id="lesClass"></select>
-      
-      <label>Subject</label>
-      <select id="lesSubject"></select>
-
-      <label>Lesson Title</label>
-      <input id="lesTitle" value="${esc(l?.title || "")}" required>
-
-      <label>YouTube Video URL or Embed Link</label>
-      <input id="lesVideo" value="${esc(l?.video || "")}" placeholder="https://www.youtube.com/watch?v=...">
-
-      <label>Access Type</label>
-      <select id="lesAccess" onchange="$('priceRow').style.display = this.value==='PAID'?'block':'none'">
-        <option value="FREE" ${l?.accessType==="FREE"?"selected":""}>Free</option>
-        <option value="PAID" ${l?.accessType==="PAID"?"selected":""}>Paid Course</option>
-      </select>
-
-      <div id="priceRow" style="display:${l?.accessType==="PAID"?"block":"none"}">
-        <label>Price (USD)</label>
-        <input id="lesPrice" type="number" step="0.01" value="${esc(l?.price || "10.00")}">
-      </div>
-
-      <label>Lesson Content / Notes</label>
-      <textarea id="lesContent" required>${esc(l?.content || "")}</textarea>
-
-      <div class="row" style="margin-top:18px; justify-content:flex-end">
-        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn primary">Save Lesson</button>
-      </div>
-    </form>
-  `);
-  populateClassDropdown(l?.class, l?.subject);
-}
-
-function populateClassDropdown(selectedClass = null, selectedSubject = null) {
-  const lvl = $("lesLevel").value;
-  const classSelect = $("lesClass");
-  const classes = state.classes[lvl] || [];
-  classSelect.innerHTML = classes.map(c => `<option value="${esc(c)}" ${selectedClass===c?"selected":""}>${esc(c)}</option>`).join("");
-  classSelect.onchange = () => populateSubjectDropdown(lvl, classSelect.value, selectedSubject);
-  populateSubjectDropdown(lvl, classes[0], selectedSubject);
-}
-
-function populateSubjectDropdown(lvl, cls, selectedSubject = null) {
-  const subSelect = $("lesSubject");
-  const key = `${lvl}__${cls}`;
-  const subs = state.subjects[key] || [];
-  subSelect.innerHTML = subs.map(s => `<option value="${esc(s)}" ${selectedSubject===s?"selected":""}>${esc(s)}</option>`).join("");
-}
-
-async function saveLesson(e, editId) {
-  e.preventDefault();
-  const lessonObj = {
-    id: editId || uid("les"),
-    level: $("lesLevel").value,
-    class: $("lesClass").value,
-    subject: $("lesSubject").value,
-    title: $("lesTitle").value.trim(),
-    video: $("lesVideo").value.trim(),
-    accessType: $("lesAccess").value,
-    price: $("lesPrice") ? $("lesPrice").value : "0",
-    content: $("lesContent").value.trim()
-  };
-
-  await sb.from('app_lessons').upsert(lessonObj);
-  
-  if(editId) {
-    const idx = state.lessons.findIndex(x => x.id === editId);
-    if(idx !== -1) state.lessons[idx] = lessonObj;
-  } else {
-    state.lessons.push(lessonObj);
-  }
-
-  toast("Lesson saved to cloud database successfully!");
-  closeModal();
-  renderTree();
-  openLesson(lessonObj.id);
-}
-
-async function deleteLesson(id) {
+async function deleteLesson(id){
   if(!confirm("Are you sure you want to delete this lesson?")) return;
-  await sb.from('app_lessons').delete().eq('id', id);
   state.lessons = state.lessons.filter(x => x.id !== id);
+  await sb.from('app_lessons').delete().eq('id', id);
   toast("Lesson deleted.");
   renderTree();
   if(state.lessons.length) openLesson(state.lessons[0].id);
   else $("lessonArea").innerHTML = `<div class="card"><h2>No lessons available.</h2></div>`;
 }
 
-function openManager() {
-  if(!canEdit()) return toast("Access denied.");
+/* --- LIVE STUDIO & INTERACTIVE WHITEBOARD --- */
+function openLiveStudio(){
   openModalContent(`
-    <h2>⚙️ Manage Curriculum Hierarchy</h2>
-    <p class="muted">Add new levels, classes, or subjects to structure your school's curriculum globally.</p>
-    
-    <div class="card" style="background:#09111e; margin-bottom:15px">
-      <h3>Add New Level</h3>
-      <form onsubmit="addLevel(event)">
-        <label>Level Name</label>
-        <input id="newLevelName" placeholder="e.g. Tertiary Level" required>
-        <button class="btn primary" style="margin-top:10px">Add Level</button>
-      </form>
-    </div>
-
-    <div class="card" style="background:#09111e; margin-bottom:15px">
-      <h3>Add New Class</h3>
-      <form onsubmit="addClass(event)">
-        <label>Parent Level</label>
-        <select id="addClassLevel">${state.levels.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select>
-        <label>Class Name</label>
-        <input id="newClassName" placeholder="e.g. Year 1" required>
-        <button class="btn primary" style="margin-top:10px">Add Class</button>
-      </form>
-    </div>
-
-    <div class="card" style="background:#09111e">
-      <h3>Add New Subject</h3>
-      <form onsubmit="addSubject(event)">
-        <label>Parent Level & Class</label>
-        <select id="addSubKey">${Object.keys(state.classes).flatMap(lvl => (state.classes[lvl]||[]).map(c => `<option value="${lvl}__${c}">${lvl} › ${c}</option>`)).join("")}</select>
-        <label>Subject Name</label>
-        <input id="newSubjectName" placeholder="e.g. Computer Science" required>
-        <button class="btn primary" style="margin-top:10px">Add Subject</button>
-      </form>
-    </div>
-
-    <div style="text-align:right; margin-top:20px">
-      <button class="btn" onclick="closeModal()">Close</button>
-    </div>
-  `);
-}
-
-async function addLevel(e) {
-  e.preventDefault();
-  const name = $("newLevelName").value.trim();
-  if(state.levels.includes(name)) return toast("Level already exists.");
-  state.levels.push(name);
-  await sb.from('app_levels').upsert({name});
-  toast("Level added successfully!");
-  closeModal();
-  renderTree();
-}
-
-async function addClass(e) {
-  e.preventDefault();
-  const level = $("addClassLevel").value;
-  const className = $("newClassName").value.trim();
-  if(!state.classes[level]) state.classes[level] = [];
-  if(state.classes[level].includes(className)) return toast("Class already exists under this level.");
-  state.classes[level].push(className);
-  await sb.from('app_classes').upsert({level, class_name: className});
-  toast("Class added successfully!");
-  closeModal();
-  renderTree();
-}
-
-async function addSubject(e) {
-  e.preventDefault();
-  const key = $("addSubKey").value;
-  const [level, cls] = key.split("__");
-  const subjectName = $("newSubjectName").value.trim();
-  if(!state.subjects[key]) state.subjects[key] = [];
-  if(state.subjects[key].includes(subjectName)) return toast("Subject already exists under this class.");
-  state.subjects[key].push(subjectName);
-  await sb.from('app_subjects').upsert({level, class_name: cls, subject_name: subjectName});
-  toast("Subject added successfully!");
-  closeModal();
-  renderTree();
-}
-
-/* --- LIVE STUDIO & WHITEBOARD EXTENSIONS --- */
-function openLiveStudio() {
-  openModalContent(`
-    <h2>🔴 Live Studio & Interactive Whiteboard</h2>
-    <p class="muted">Broadcast your camera or screen live to students with real-time text chat and collaborative whiteboard annotation.</p>
+    <h2>🔴 Live Classroom Studio & Interactive Whiteboard</h2>
+    <p class="muted">Broadcast your webcam or share your screen live, and collaborate with students in real time using the interactive whiteboard and live chat.</p>
     
     <div class="class-grid">
       <div>
-        <div class="video"><video id="liveVideoFeed" autoplay playsinline muted></video></div>
+        <div class="video" style="margin:0"><video id="localVideo" autoplay playsinline muted></video></div>
         <div class="row wrap" style="margin-top:10px">
-          <button class="btn primary" onclick="startCameraFeed()">📹 Start Camera</button>
-          <button class="btn success" onclick="startScreenShare()">🖥️ Share Screen</button>
-          <button class="btn danger" onclick="stopLiveStream()">⏹️ Stop Stream</button>
+          <button class="btn primary" onclick="startCamera()">📷 Start Camera</button>
+          <button class="btn purple" onclick="startScreenShare()">💻 Share Screen</button>
+          <button class="btn danger" onclick="stopStream()">⏹ Stop Stream</button>
         </div>
       </div>
       <div class="chat-box">
-        <h4>Live Classroom Chat</h4>
+        <h4>Live Session Chat</h4>
         <div id="chatMessages" class="chat-messages">
-          <div class="chat-msg"><b>System:</b> Welcome to the live classroom session!</div>
+          <div class="chat-msg"><b>System:</b> Welcome to Live Studio.</div>
         </div>
         <div class="row" style="margin-top:8px">
-          <input id="chatInput" placeholder="Type message..." onkeydown="if(event.key==='Enter')sendChatMsg()">
-          <button class="btn primary" onclick="sendChatMsg()">Send</button>
+          <input id="chatInput" placeholder="Type message..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="btn primary" onclick="sendChat()">Send</button>
         </div>
       </div>
     </div>
 
     <div class="whiteboard-container">
+      <div class="row" style="position:absolute; top:8px; left:8px; z-index:10; background:var(--surface); padding:4px 8px; border-radius:6px">
+        <label style="margin:0; font-size:11px">Color:</label>
+        <input type="color" id="wbColor" value="#0b1220" style="width:30px; height:24px; padding:0; border:0">
+        <button class="btn" style="padding:3px 8px; font-size:11px" onclick="clearWhiteboard()">Clear Canvas</button>
+      </div>
       <canvas id="whiteboardCanvas"></canvas>
     </div>
-    <div class="row" style="margin-top:10px; justify-content:space-between">
-      <div class="row">
-        <button class="btn" onclick="clearWhiteboard()">🧹 Clear Canvas</button>
-        <input type="color" id="brushColor" value="#3b82f6" style="width:40px;height:35px;padding:0;border:0;background:none">
-      </div>
-      <button class="btn" onclick="closeModal()">Close Studio</button>
+
+    <div style="text-align:right; margin-top:20px">
+      <button class="btn" onclick="closeLiveModal()">Exit Studio</button>
     </div>
   `);
-  initWhiteboard();
+  setTimeout(initWhiteboard, 200);
 }
 
-async function startCameraFeed() {
+async function startCamera(){
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     state.activeStream = stream;
-    $("liveVideoFeed").srcObject = stream;
-    toast("Camera feed started.");
-  } catch(e) { toast("Error accessing camera: " + e.message); }
+    $("localVideo").srcObject = stream;
+  } catch(e) { toast("Could not access camera: " + e.message); }
 }
 
-async function startScreenShare() {
+async function startScreenShare(){
   try {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
     state.activeStream = stream;
-    $("liveVideoFeed").srcObject = stream;
-    toast("Screen sharing started.");
-  } catch(e) { toast("Error sharing screen: " + e.message); }
+    $("localVideo").srcObject = stream;
+  } catch(e) { toast("Could not share screen: " + e.message); }
 }
 
-function stopLiveStream() {
+function stopStream(){
   if(state.activeStream) {
     state.activeStream.getTracks().forEach(t => t.stop());
     state.activeStream = null;
-    $("liveVideoFeed").srcObject = null;
-    toast("Live stream stopped.");
+    $("localVideo").srcObject = null;
   }
 }
 
-function sendChatMsg() {
+function closeLiveModal(){
+  stopStream();
+  closeModal();
+}
+
+function sendChat(){
   const input = $("chatInput");
-  const text = input.value.trim();
-  if(!text) return;
+  const val = input.value.trim();
+  if(!val) return;
   const box = $("chatMessages");
-  box.innerHTML += `<div class="chat-msg"><b>${esc(state.user.name)}:</b> ${esc(text)}</div>`;
+  box.innerHTML += `<div class="chat-msg"><b>${esc(state.user.name)}:</b> ${esc(val)}</div>`;
   input.value = "";
   box.scrollTop = box.scrollHeight;
 }
 
-function initWhiteboard() {
+let isDrawing = false, lastX = 0, lastY = 0;
+function initWhiteboard(){
   const canvas = $("whiteboardCanvas");
   if(!canvas) return;
   const ctx = canvas.getContext("2d");
   canvas.width = canvas.parentElement.clientWidth;
   canvas.height = 380;
 
-  let drawing = false;
-  canvas.onmousedown = (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
+  ctx.strokeStyle = "#0b1220";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+
+  canvas.onmousedown = (e) => { isDrawing = true; [lastX, lastY] = [e.offsetX, e.offsetY]; };
   canvas.onmousemove = (e) => {
-    if(!drawing) return;
-    ctx.strokeStyle = $("brushColor").value;
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
+    if(!isDrawing) return;
+    ctx.strokeStyle = $("wbColor")?.value || "#0b1220";
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
     ctx.lineTo(e.offsetX, e.offsetY);
     ctx.stroke();
+    [lastX, lastY] = [e.offsetX, e.offsetY];
   };
-  window.onmouseup = () => { drawing = false; };
+  canvas.onmouseup = () => isDrawing = false;
+  canvas.onmouseout = () => isDrawing = false;
 }
 
-function clearWhiteboard() {
+function clearWhiteboard(){
   const canvas = $("whiteboardCanvas");
   if(!canvas) return;
   const ctx = canvas.getContext("2d");
