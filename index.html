@@ -1028,6 +1028,88 @@ function clearWhiteboard(){
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
+
+function openLessonModal(){
+  openModalContent(`
+    <h2>➕ Add Lesson Content</h2>
+    <form onsubmit="saveLesson(event)">
+      <label>Educational Level</label>
+      <select id="lessLevel" onchange="populateClassDropdown()">${state.levels.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select>
+      <label>Class</label>
+      <select id="lessClass"></select>
+      <label>Subject</label>
+      <select id="lessSubject"></select>
+      <label>Lesson Title</label>
+      <input id="lessTitle" required placeholder="e.g. Algebraic Equations">
+      <label>YouTube Video URL or Embed Link</label>
+      <input id="lessVideo" placeholder="https://www.youtube.com/watch?v=...">
+      <label>Access Type</label>
+      <select id="lessAccess"><option value="FREE">Free Content</option><option value="PAID">Paid Content</option></select>
+      
+      <label>Price (USD if Paid)</label>
+      <input id="lessPrice" type="number" step="0.01" value="0.00" placeholder="10.00">
+      
+      <label>Lesson Content / Notes (Markdown or HTML supported)</label>
+      <textarea id="lessContent" placeholder="Enter lesson details, notes, or instructions here..."></textarea>
+      
+      <div class="row" style="margin-top:18px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn primary">Save Lesson</button>
+      </div>
+    </form>
+  `);
+  populateClassDropdown();
+}
+
+function populateClassDropdown() {
+  const lvl = $("lessLevel").value;
+  const classSelect = $("lessClass");
+  const classes = state.classes[lvl] || [];
+  classSelect.innerHTML = classes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  populateSubjectDropdown();
+  classSelect.onchange = populateSubjectDropdown;
+}
+
+function populateSubjectDropdown() {
+  const lvl = $("lessLevel").value;
+  const cls = $("lessClass").value;
+  const subjectSelect = $("lessSubject");
+  const key = `${lvl}__${cls}`;
+  const subjects = state.subjects[key] || [];
+  subjectSelect.innerHTML = subjects.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
+}
+
+async function saveLesson(e) {
+  e.preventDefault();
+  const level = $("lessLevel").value;
+  const cls = $("lessClass").value;
+  const subject = $("lessSubject").value;
+  const title = $("lessTitle").value.trim();
+  const video = $("lessVideo").value.trim();
+  const accessType = $("lessAccess").value;
+  const price = $("lessPrice").value;
+  const content = $("lessContent").value.trim();
+
+  const newLesson = {
+    id: uid("les"),
+    level,
+    class: cls,
+    subject,
+    title,
+    video,
+    accessType,
+    price,
+    content
+  };
+
+  state.lessons.push(newLesson);
+  await sb.from('app_lessons').upsert(newLesson);
+  toast("Lesson added successfully!");
+  closeModal();
+  renderTree();
+  openLesson(newLesson.id);
+}
+  
 </script>
 </body>
 </html>
