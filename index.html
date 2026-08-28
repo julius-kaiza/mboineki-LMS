@@ -106,7 +106,7 @@ main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.ban
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div id="modalBox" class="modal-box"></div></div>
 
 <script>
-const CONFIG={ SUPABASE_URL: "https://ykeeqriqifuhzhjespro.supabase.co", SUPABASE_ANON_KEY: "sb_publishable_h6numkplMPSASwLP_I64Og_fQErzIVC" };
+const CONFIG = { SUPABASE_URL: "https://ykeeqriqifuhzhjespro.supabase.co", SUPABASE_ANON_KEY: "sb_publishable_h6numkplMPSASwLP_I64Og_fQErzIVC" };
 const hasBackend = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
 const sb = hasBackend ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
 
@@ -136,8 +136,7 @@ function saveLocal(){
 async function loadData(){
   if(hasBackend) {
     try {
-      // Supabase cloud data synchronization check
-      const { data: cfgData } = await sb.from('config').select('*').single();
+      const { data: cfgData } = await sb.from('config').select('*').limit(1).single();
       if(cfgData) state.config = cfgData;
       
       const { data: lvlData } = await sb.from('levels').select('*');
@@ -163,7 +162,12 @@ async function loadData(){
       }
 
       const { data: lesData } = await sb.from('lessons').select('*');
-      if(lesData) state.lessons = lesData;
+      if(lesData) {
+        state.lessons = lesData.map(l => ({
+          ...l,
+          class: l.class_name // Map backend class_name to UI class
+        }));
+      }
 
       applyPortalBranding();
       return;
@@ -242,7 +246,6 @@ async function login(e){
   const email = $("loginEmail").value.trim().toLowerCase(), pass = $("loginPassword").value;
   
   if(hasBackend) {
-    // Supabase auth attempt if connected
     const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
     if(!error && data.user) {
       state.user = { id: data.user.id, email: data.user.email, name: data.user.user_metadata?.name || "Cloud User", role: data.user.user_metadata?.role || "STUDENT" };
@@ -661,7 +664,15 @@ async function saveNewLesson(e){
   const newLesson = { id: uid("les"), level, class: cls, subject, title, video, content };
 
   if(hasBackend) {
-    await sb.from('lessons').insert([newLesson]);
+    await sb.from('lessons').insert([{
+      id: newLesson.id,
+      level: newLesson.level,
+      class_name: newLesson.class, // Map to class_name for Supabase
+      subject: newLesson.subject,
+      title: newLesson.title,
+      video: newLesson.video,
+      content: newLesson.content
+    }]);
   }
 
   state.lessons.push(newLesson);
@@ -682,8 +693,8 @@ async function deleteLesson(id){
   state.lessons = state.lessons.filter(l => l.id !== id);
   saveLocal();
   renderTree();
-  $("lessonArea").innerHTML = `<div class="card"><h2>Content deleted</h2><p class="muted">Select another lesson from the sidebar.</p></div>`;
-  toast("Lesson deleted.");
+  $("lessonArea").innerHTML = `<div class="card"><h2>Content Deleted</h2><p class="muted">Select another item from the sidebar.</p></div>`;
+  toast("Lesson deleted successfully.");
 }
 </script>
 </body>
