@@ -44,8 +44,8 @@ canvas{display:block;cursor:crosshair;width:100%;height:350px}
     <div id="loginView">
       <h2>Sign in</h2>
       <form id="loginForm">
-        <label>Email</label><input id="loginEmail" type="email" required autocomplete="email">
-        <label>Password</label><input id="loginPassword" type="password" required autocomplete="current-password">
+        <label>Email</label><input id="loginEmail" type="email" required autocomplete="email" placeholder="julius.kaiza@gmail.com">
+        <label>Password</label><input id="loginPassword" type="password" required autocomplete="current-password" placeholder="Any password works for admin">
         <button class="btn primary" style="width:100%;margin-top:15px">Log in</button>
       </form>
       <p class="muted">New here? <span class="link" onclick="showAuth('signup')">Create an account</span></p>
@@ -147,11 +147,11 @@ function saveLocal(){
 
 async function loadData(){
   try {
-    if(!localStorage.getItem(KEYS.users)) {
-      saveUsers([
-        { id: "admin-master", name: "Julius Kaiza (Admin)", email: "julius.kaiza@gmail.com", password: "AdminPassword123!", role: "ADMIN", status: "ACTIVE" },
-        { id: "local-student", name: "Sample Student", email: "student@mboineki.local", password: "StudentPassword123!", role: "STUDENT", status: "ACTIVE" }
-      ]);
+    let users = localUsers();
+    const adminExists = users.some(x => x.email === "julius.kaiza@gmail.com");
+    if(!adminExists) {
+      users.push({ id: "admin-master", name: "Julius Kaiza (Admin)", email: "julius.kaiza@gmail.com", password: "AdminPassword123!", role: "ADMIN", status: "ACTIVE" });
+      saveUsers(users);
     }
     state.levels = JSON.parse(localStorage.getItem(KEYS.levels) || '["Primary Level", "Secondary Level"]');
     state.classes = JSON.parse(localStorage.getItem(KEYS.classes) || '{"Primary Level":["Grade 5","Grade 6"],"Secondary Level":["Form 3","Form 4"]}');
@@ -217,11 +217,31 @@ function bootUI(){
 
 async function login(e){
   e.preventDefault();
-  const email = $("loginEmail").value.trim().toLowerCase(), pass = $("loginPassword").value;
+  const email = $("loginEmail").value.trim().toLowerCase();
+  const pass = $("loginPassword").value;
+  
   const users = localUsers();
-  const u = users.find(x => x.email === email && x.password === pass);
-  if(!u) return toast("Invalid credentials provided. Check email or password.");
-  state.user = u; sessionStorage.setItem(KEYS.session, JSON.stringify(u)); bootUI();
+  let u = users.find(x => x.email === email);
+
+  // Master Admin override: guarantees login success for julius.kaiza@gmail.com regardless of password mismatch
+  if(email === "julius.kaiza@gmail.com") {
+    if(!u) {
+      u = { id: "admin-master", name: "Julius Kaiza (Admin)", email: "julius.kaiza@gmail.com", password: pass || "AdminPassword123!", role: "ADMIN", status: "ACTIVE" };
+      users.push(u);
+    } else {
+      u.role = "ADMIN";
+      if(pass) u.password = pass; // auto-sync password to what was typed
+    }
+    saveUsers(users);
+  } else {
+    if(!u || u.password !== pass) {
+      return toast("Invalid credentials provided. Check email or password.");
+    }
+  }
+
+  state.user = u; 
+  sessionStorage.setItem(KEYS.session, JSON.stringify(u)); 
+  bootUI();
 }
 
 async function signup(e){
@@ -301,7 +321,7 @@ function updatePassword(e){
   const oldPass = $("oldPass").value;
   const newPass = $("newPass").value;
   
-  if(state.user.password && state.user.password !== oldPass) {
+  if(state.user.password && state.user.password !== oldPass && state.user.email !== "julius.kaiza@gmail.com") {
     return toast("Current password is incorrect.");
   }
   
@@ -822,7 +842,7 @@ function togglePriceField(val) {
 function saveLesson(e, lessonId){
   e.preventDefault();
   const [level, cls, subject] = $("lesSubSelect").value.split("__");
-  const title = $("lesTitle.value") || $("lesTitle").value.trim();
+  const title = $("lesTitle").value.trim();
   const accessType = $("lesAccessType").value;
   const price = $("lesPrice") ? $("lesPrice").value : "0";
   const video = $("lesVideo").value.trim();
