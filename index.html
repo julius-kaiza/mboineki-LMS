@@ -123,7 +123,7 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div id="modalBox" class="modal-box"></div></div>
 
 <script>
-const CONFIG={ SUPABASE_URL: "https://ykeeqriqifuhzhjespro.supabase.co/rest/v1/", SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZWVxcmlxaWZ1aHpoamVzcHJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTQyNzIsImV4cCI6MjEwMzQ3MDI3Mn0.AvLByu1hD0bGDPO-Bn7emQ1GMx-iXUab4BxEwQC8FzA" };
+const CONFIG={ SUPABASE_URL: "https://ykeeqriqifuhzhjespro.supabase.co/rest/v1/", SUPABASE_ANON_KEY: "sb_secret_zBdQSWex8KkfMFH6tOS90Q_fk7tXKrq" };
 const hasBackend = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
 const sb = hasBackend ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
 
