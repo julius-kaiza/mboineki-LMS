@@ -3,1113 +3,721 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Mboineki LMS — enterprise cloud learning platform">
 <title id="pageTitle">Mboineki LMS - Enterprise Edition</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Google Pay API Script -->
+<script async src="https://pay.google.com/gp/p/js/pay.js"></script>
 <style>
 :root{--bg:#0b1220;--surface:#111c2e;--surface2:#17243a;--line:#263750;--text:#f7f9fc;--muted:#9aa9bd;--primary:#3b82f6;--success:#10b981;--warn:#f59e0b;--danger:#ef4444;--purple:#8b5cf6}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
-.auth{min-height:100vh;display:grid;place-items:center;padding:20px}.auth-card{width:min(430px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:30px;box-shadow:0 25px 60px #0008}
+*{box-sizing:border-box}html,body{min-height:100%}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.auth{min-height:100vh;display:grid;place-items:center;padding:20px}.auth-card{width:min(450px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:30px;box-shadow:0 25px 60px #0008}
 h1,h2,h3{margin-top:0}.brand{color:var(--primary)}label{display:block;color:var(--muted);font-size:12px;margin:12px 0 5px}
 input,select,textarea{width:100%;background:#09111e;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 12px;outline:0}textarea{min-height:110px;resize:vertical}
-input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px #3b82f633}
-.btn{border:0;border-radius:9px;padding:9px 13px;color:#fff;background:var(--surface2);font-weight:650}.btn:hover{filter:brightness(1.12)}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px #3b82f633}.btn{border:0;border-radius:9px;padding:9px 13px;color:#fff;background:var(--surface2);font-weight:650}.btn:hover{filter:brightness(1.12)}.btn:disabled{opacity:.5;cursor:not-allowed}
 .primary{background:var(--primary)}.success{background:var(--success)}.warn{background:var(--warn);color:#111}.danger{background:var(--danger)}.purple{background:var(--purple)}
-.link{color:#60a5fa;cursor:pointer}.row{display:flex;gap:8px;align-items:center}.wrap{flex-wrap:wrap}
+.link{color:#60a5fa;cursor:pointer}.row{display:flex;gap:8px;align-items:center}.wrap{flex-wrap:wrap}.grow{flex:1}
 .app{height:100vh;display:grid;grid-template-columns:290px 1fr}.sidebar{border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-width:0}.topbrand{padding:18px;border-bottom:1px solid var(--line)}.profile{padding:12px 15px;border-bottom:1px solid var(--line)}
 .tree{overflow:auto;padding:10px;flex:1}.tree-item{padding:9px 10px;border-radius:8px;margin:3px 0;display:flex;justify-content:space-between;gap:8px;cursor:pointer}.tree-item:hover{background:var(--surface2)}.tree-level{color:#7fb0ff;background:#0b1424;font-weight:bold}.tree-class{margin-left:10px;color:#9ec5ff}.tree-subject{margin-left:20px;color:#9de2c7}.tree-lesson{margin-left:30px;font-size:13px}.active{background:var(--primary)!important;color:white!important}
-main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.banner,.card,.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
+main{overflow:auto}.content{width:min(1280px,100%);margin:auto;padding:24px}.banner,.card,.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
 .video{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:12px;overflow:hidden;margin:15px 0}.video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
-.modal{position:fixed;inset:0;background:#0009;display:none;place-items:center;padding:18px;z-index:50}.modal.open{display:grid}.modal-box{width:min(720px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:20px}
+.modal{position:fixed;inset:0;background:#0009;display:none;place-items:center;padding:18px;z-index:50}.modal.open{display:grid}.modal-box{width:min(820px,100%);max-height:92vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:20px}
 .list{display:grid;gap:8px}.item{padding:11px;border:1px solid var(--line);border-radius:9px;background:#0d1726;display:flex;justify-content:space-between;gap:10px;align-items:center}.muted{color:var(--muted)}.empty{padding:25px;text-align:center;color:var(--muted)}
-.status{font-size:11px;padding:4px 7px;border-radius:20px;background:#10b98122;color:#58e0b2}.offline{background:#f59e0b22;color:#ffc15c}
-
-/* Interactive Live Classroom & Whiteboard Extensions */
-.class-grid{display:grid;grid-template-columns:2fr 1fr;gap:15px}
-.chat-box{display:flex;flex-direction:column;height:380px;background:#09111e;border:1px solid var(--line);border-radius:10px;padding:10px}
-.chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:5px}
-.chat-msg{background:var(--surface2);padding:8px 10px;border-radius:8px;font-size:13px}
-.whiteboard-container{background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line);position:relative;margin-top:15px}
-canvas{display:block;cursor:crosshair;width:100%;height:380px}
-@media(max-width:900px){.class-grid{grid-template-columns:1fr}}
-@media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.sidebar{min-height:300px;max-height:42vh}.grid{grid-template-columns:1fr}.full{grid-column:auto}.content{padding:14px}}
+.status{font-size:11px;padding:4px 7px;border-radius:20px;background:#10b98122;color:#58e0b2}.offline{background:#f59e0b22;color:#ffc15c}.danger-text{color:#ff8b8b}.small{font-size:12px}
+.class-grid{display:grid;grid-template-columns:2fr 1fr;gap:15px}.chat-box{display:flex;flex-direction:column;height:380px;background:#09111e;border:1px solid var(--line);border-radius:10px;padding:10px}.chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:5px}.chat-msg{background:var(--surface2);padding:8px 10px;border-radius:8px;font-size:13px}.chat-msg.mine{border-left:3px solid var(--primary)}
+.whiteboard-container{background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line);position:relative;margin-top:15px}.whiteboard-container canvas{display:block;cursor:crosshair;width:100%;height:380px}
+.video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:12px}.peer-video{background:#000;border-radius:10px;overflow:hidden;min-height:160px;position:relative}.peer-video video{width:100%;height:100%;min-height:160px;object-fit:cover}.peer-label{position:absolute;left:8px;bottom:8px;background:#000b;padding:4px 7px;border-radius:6px;font-size:11px}
+.notification{position:fixed;right:18px;bottom:18px;z-index:100;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 15px;box-shadow:0 12px 35px #0007}.notification.ok{border-color:#10b98166}.notification.err{border-color:#ef444466}
+@media(max-width:900px){.class-grid{grid-template-columns:1fr}.grid3{grid-template-columns:1fr 1fr}}@media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.sidebar{min-height:300px;max-height:42vh}.grid,.grid3{grid-template-columns:1fr}.full{grid-column:auto}.content{padding:14px}.banner{padding:14px}}
 </style>
 </head>
 <body>
 
 <section id="auth" class="auth">
-  <div class="auth-card">
-    <h1 class="brand" id="brandTitle">Mboineki LMS</h1>
-    <p class="muted">Enterprise Learning platform with Live Studio, Whiteboard, Admin Oversight & Cloud Database Sync.</p>
-    <div id="loginView">
-      <h2>Sign in</h2>
-      <form id="loginForm">
-        <label>Email</label><input id="loginEmail" type="email" required autocomplete="email" placeholder="julius.kaiza@gmail.com">
-        <label>Password</label><input id="loginPassword" type="password" required autocomplete="current-password" placeholder="Password">
-        <button class="btn primary" style="width:100%;margin-top:15px">Log in</button>
-      </form>
-      <p class="muted">New here? <span class="link" onclick="showAuth('signup')">Create an account</span></p>
-      <p class="muted"><span class="link" onclick="showAuth('reset')">Forgot password?</span></p>
-      <button class="btn success" style="width:100%;margin-top:10px" onclick="openShareModal()">📤 Share Platform Link</button>
-    </div>
-    <div id="signupView" class="hidden">
-      <h2>Create account</h2>
-      <form id="signupForm">
-        <label>Full name</label><input id="signupName" required>
-        <label>Email</label><input id="signupEmail" type="email" required>
-        <label>Password</label><input id="signupPassword" type="password" minlength="6" required>
-        <label>Account type</label><select id="signupRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option><option value="ADMIN">Administrator</option></select>
-        <button class="btn success" style="width:100%;margin-top:15px">Create account</button>
-      </form>
-      <p class="muted">Already registered? <span class="link" onclick="showAuth('login')">Sign in</span></p>
-    </div>
-    <div id="resetView" class="hidden">
-      <h2>Reset password</h2>
-      <p class="muted">Enter your account email to receive reset instructions.</p>
-      <form id="resetForm"><label>Email</label><input id="resetEmail" type="email" required><button class="btn warn" style="width:100%;margin-top:15px">Send reset email</button></form>
-      <p class="muted"><span class="link" onclick="showAuth('login')">Back to sign in</span></p>
-    </div>
-    <small id="modeNote" class="muted" style="margin-top:15px;display:block"></small>
-  </div>
+<div class="auth-card">
+<h1 class="brand" id="brandTitle">Mboineki LMS</h1>
+<p class="muted">Enterprise Learning Platform with Live Studio, Whiteboard, Administration, Cloud Database Sync and real-time collaboration.</p>
+<div id="loginView">
+<h2>Sign in</h2>
+<form id="loginForm">
+<label>Email</label><input id="loginEmail" type="email" required autocomplete="email">
+<label>Password</label><input id="loginPassword" type="password" required autocomplete="current-password">
+<button class="btn primary" style="width:100%;margin-top:15px">Log in</button>
+</form>
+<p class="muted">New here? <span class="link" onclick="showAuth('signup')">Create an account</span></p>
+<p class="muted"><span class="link" onclick="showAuth('reset')">Forgot password?</span></p>
+<button class="btn success" style="width:100%;margin-top:10px" onclick="openShareModal()">📤 Share Platform Link</button>
+</div>
+<div id="signupView" class="hidden">
+<h2>Create account</h2>
+<form id="signupForm">
+<label>Full name</label><input id="signupName" required autocomplete="name">
+<label>Email</label><input id="signupEmail" type="email" required autocomplete="email">
+<label>Password</label><input id="signupPassword" type="password" minlength="8" required autocomplete="new-password">
+<label>Account type</label><select id="signupRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option></select>
+<p class="small muted">Administrator accounts are controlled by an existing administrator and cannot be self-created.</p>
+<button class="btn success" style="width:100%;margin-top:15px">Create account</button>
+</form>
+<p class="muted">Already registered? <span class="link" onclick="showAuth('login')">Sign in</span></p>
+</div>
+<div id="resetView" class="hidden">
+<h2>Reset password</h2><p class="muted">Enter your account email to receive a secure Supabase password-reset email.</p>
+<form id="resetForm"><label>Email</label><input id="resetEmail" type="email" required><button class="btn warn" style="width:100%;margin-top:15px">Send reset email</button></form>
+<p class="muted"><span class="link" onclick="showAuth('login')">Back to sign in</span></p>
+</div>
+<small id="modeNote" class="muted" style="margin-top:15px;display:block"></small>
+</div>
 </section>
 
 <div id="app" class="app hidden">
-  <aside class="sidebar">
-    <div class="topbrand">
-      <div class="row" style="justify-content:space-between">
-        <strong class="brand" id="sidebarBrand">Mboineki LMS</strong>
-        <button class="btn success" style="padding:4px 8px;font-size:11px" onclick="openShareModal()">📤 Share</button>
-      </div>
-      <small id="modeBadge" class="status"></small>
-    </div>
-    <div class="profile">
-      <div id="profileName">User</div>
-      <small id="profileRole" class="muted"></small>
-      <div class="row" style="margin-top:8px">
-        <button class="btn danger" onclick="logout()">Logout</button>
-        <button class="btn" onclick="openPasswordModal()">Password</button>
-      </div>
-    </div>
-    <div id="tree" class="tree"></div>
-  </aside>
-  <main>
-    <div class="content">
-      <div class="banner row" style="justify-content:space-between">
-        <div><h2 id="heading">Learning Workspace</h2><p id="subheading" class="muted">Select an item from the curriculum tree.</p></div>
-        <div class="row">
-          <button class="btn purple" onclick="openLiveStudio()">🔴 Live Studio & Whiteboard</button>
-          <button class="btn success" onclick="openShareModal()">📤 Share Platform</button>
-          <span id="roleBadge" class="status"></span>
-        </div>
-      </div>
-      <div id="adminTools" class="toolbar hidden">
-        <button class="btn purple" onclick="openManager()">⚙️ Manage Hierarchy, Rename & Edit</button>
-        <button class="btn primary" onclick="openLessonModal()">+ Add Lesson Content</button>
-        <button class="btn warn" id="userManagementBtn" onclick="openUserManagementModal()">👥 Manage Accounts & Permissions</button>
-      </div>
-      <div id="lessonArea">
-        <div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any structured curriculum item on the left to explore lessons, or launch the Live Studio for real-time camera, screen sharing, and interactive whiteboard sessions.</p></div>
-      </div>
-    </div>
-  </main>
+<aside class="sidebar">
+<div class="topbrand"><div class="row" style="justify-content:space-between"><strong class="brand" id="sidebarBrand">Mboineki LMS</strong><button class="btn success" style="padding:4px 8px;font-size:11px" onclick="openShareModal()">📤 Share</button></div><small id="modeBadge" class="status"></small></div>
+<div class="profile"><div id="profileName">User</div><small id="profileRole" class="muted"></small><div class="row" style="margin-top:8px"><button class="btn danger" onclick="logout()">Logout</button><button class="btn" onclick="openPasswordModal()">Password</button></div></div>
+<div id="tree" class="tree"></div>
+</aside>
+<main><div class="content">
+<div class="banner row wrap" style="justify-content:space-between"><div><h2 id="heading">Learning Workspace</h2><p id="subheading" class="muted">Select an item from the curriculum tree.</p></div><div class="row wrap"><button class="btn purple" onclick="openLiveStudio()">🔴 Live Studio & Whiteboard</button><button class="btn success" onclick="openShareModal()">📤 Share Platform</button><span id="roleBadge" class="status"></span></div></div>
+<div id="adminTools" class="toolbar hidden"><button class="btn purple" onclick="openManager()">⚙️ Manage Hierarchy, Rename & Edit</button><button class="btn primary" onclick="openLessonModal()">+ Add Lesson Content</button><button class="btn warn" id="userManagementBtn" onclick="openUserManagementModal()">👥 Manage Accounts & Permissions</button></div>
+<div id="lessonArea"><div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any structured curriculum item on the left to explore lessons, or launch Live Studio for real-time camera, screen sharing, interactive whiteboard and chat.</p></div></div>
+</div></main>
 </div>
 
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div id="modalBox" class="modal-box"></div></div>
+<div id="notifyRoot"></div>
 
 <script>
-const CONFIG = { SUPABASE_URL: "https://ykeeqriqifuhzhjespro.supabase.co", SUPABASE_ANON_KEY: "sb_publishable_h6numkplMPSASwLP_I64Og_fQErzIVC" };
-const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+"use strict";
 
-const KEYS = { session: "mboino_ent_session" };
-
-const state = {
-  user: null, levels: [], classes: {}, subjects: {}, lessons: [],
-  config: { portalTitle: "Mboineki LMS" }, active: null,
-  expanded: {}, purchases: [], activeStream: null
+const CONFIG={
+  SUPABASE_URL:"https://ykeeqriqifuhzhjespro.supabase.co",
+  SUPABASE_ANON_KEY:"sb_publishable_h6numkplMPSASwLP_I64Og_fQErzIVC",
+  DEFAULT_TITLE:"Mboineki LMS",
+  ADMIN_EMAIL:"julius.kaiza@gmail.com",
+  // Change to "PRODUCTION" when your Google Pay merchant ID is configured
+  GOOGLE_PAY_ENVIRONMENT:"PRODUCTION", 
+  GOOGLE_PAY_MERCHANT_ID:"BCR2DN6D3KP7TTTC" // Optional in TEST mode
 };
+const sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);
+const KEYS={session:"mboino_ent_session"};
+const state={
+ user:null,profile:null,levels:[],classes:{},subjects:{},lessons:[],config:{portalTitle:CONFIG.DEFAULT_TITLE},
+ active:null,expanded:{},purchases:[],activeStream:null,liveChannel:null,liveRoomId:null,
+ peerConnections:new Map(),remoteVideos:new Map(),whiteboard:null,whiteboardChannel:null
+};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=p=>p+"_"+crypto.randomUUID();
+function toast(msg,type="ok"){const n=document.createElement("div");n.className=`notification ${type==="err"?"err":"ok"}`;n.textContent=msg;$("notifyRoot").appendChild(n);setTimeout(()=>n.remove(),4200)}
+function dbError(error,action="Database operation"){if(error){console.error(action,error);toast(`${action} failed: ${error.message||error}`, "err");return true}return false}
+function isAdmin(){return state.user?.role==="ADMIN"||state.user?.email?.toLowerCase()===CONFIG.ADMIN_EMAIL}
+function canEdit(){return isAdmin()||state.user?.role==="TUTOR"}
+function isDisabled(){return state.user?.status==="DISABLED"}
+function currentUserId(){return state.user?.id||state.profile?.id||null}
 
-const $ = id => document.getElementById(id);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const uid = p => p + "_" + crypto.randomUUID();
-function toast(msg){ alert(msg); }
-
-// --- CLOUD SUPABASE SYNCHRONIZATION FUNCTIONS ---
-async function loadDataFromCloud(){
-  try {
-    let { data: configData } = await sb.from('app_config').select('*').eq('key', 'settings').single();
-    if(configData) state.config = configData.value;
-
-    let { data: levelsData } = await sb.from('app_levels').select('*');
-    if(levelsData && levelsData.length > 0) {
-      state.levels = levelsData.map(l => l.name);
-    } else {
-      state.levels = ["Primary Level", "Secondary Level"];
-      for(let lvl of state.levels) await sb.from('app_levels').upsert({name: lvl});
-    }
-
-    let { data: classesData } = await sb.from('app_classes').select('*');
-    state.classes = {};
-    if(classesData && classesData.length > 0) {
-      classesData.forEach(c => {
-        if(!state.classes[c.level]) state.classes[c.level] = [];
-        state.classes[c.level].push(c.class_name);
-      });
-    } else {
-      state.classes = {"Primary Level":["Grade 5","Grade 6"],"Secondary Level":["Form 3","Form 4"]};
-      for(let lvl in state.classes) {
-        for(let cls of state.classes[lvl]) {
-          await sb.from('app_classes').upsert({level: lvl, class_name: cls});
-        }
-      }
-    }
-
-    let { data: subjectsData } = await sb.from('app_subjects').select('*');
-    state.subjects = {};
-    if(subjectsData && subjectsData.length > 0) {
-      subjectsData.forEach(s => {
-        const key = `${s.level}__${s.class_name}`;
-        if(!state.subjects[key]) state.subjects[key] = [];
-        state.subjects[key].push(s.subject_name);
-      });
-    } else {
-      state.subjects = {"Primary Level__Grade 5":["Mathematics","Elementary Science"],"Secondary Level__Form 3":["Physics","Chemistry"]};
-      for(let key in state.subjects) {
-        let [lvl, cls] = key.split("__");
-        for(let sub of state.subjects[key]) {
-          await sb.from('app_subjects').upsert({level: lvl, class_name: cls, subject_name: sub});
-        }
-      }
-    }
-
-    let { data: lessonsData } = await sb.from('app_lessons').select('*');
-    if(lessonsData && lessonsData.length > 0) {
-      state.lessons = lessonsData;
-    } else {
-      state.lessons = [
-        {id:"les_1", level:"Primary Level", class:"Grade 5", subject:"Mathematics", title:"Introduction to Fractions", content:"Fractions represent parts of a whole value. Learn numerator and denominator fundamentals.", video:"", accessType:"FREE", price:"0"},
-        {id:"les_2", level:"Secondary Level", class:"Form 3", subject:"Physics", title:"Advanced Quantum Mechanics (Paid Course)", content:"Exclusive enterprise physics tutorial covering quantum states and wave equations.", video:"", accessType:"PAID", price:"15.00"}
-      ];
-      for(let les of state.lessons) await sb.from('app_lessons').upsert(les);
-    }
-
-    let { data: usersData } = await sb.from('app_users').select('*');
-    let users = usersData || [];
-    const adminExists = users.some(x => x.email === "julius.kaiza@gmail.com");
-    if(!adminExists) {
-      const masterAdmin = { id: "admin-master", name: "Julius Kaiza (Admin)", email: "julius.kaiza@gmail.com", password: "AdminPassword123!", role: "ADMIN", status: "ACTIVE" };
-      await sb.from('app_users').upsert(masterAdmin);
-    }
-
-    applyPortalBranding();
-  } catch(e) { console.error("Cloud loading error, falling back to local state", e); }
-}
-
-async function fetchCloudUsers(){
-  let { data } = await sb.from('app_users').select('*');
-  return data || [];
-}
-
-async function saveCloudUser(u){
-  await sb.from('app_users').upsert(u);
-}
-
-async function deleteCloudUser(id){
-  await sb.from('app_users').delete().eq('id', id);
-}
-
-function applyPortalBranding(){
-  const title = state.config.portalTitle || "Mboineki LMS";
-  if($("pageTitle")) $("pageTitle").textContent = title;
-  if($("brandTitle")) $("brandTitle").textContent = title;
-  if($("sidebarBrand")) $("sidebarBrand").textContent = title;
-}
-
-function normalizeYouTube(url){
-  if(!url) return null;
-  try {
-    const u = new URL(url.trim()); let id = "";
-    if(u.hostname.includes("youtu.be")) id = u.pathname.slice(1).split("/")[0];
-    else if(u.searchParams.get("v")) id = u.searchParams.get("v");
-    else if(u.pathname.includes("/embed/")) id = u.pathname.split("/embed/")[1].split("/")[0];
-    if(!id) return url;
-    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=0&rel=0&playsinline=1`;
-  } catch { return url; }
-}
-
-function youtubeBlock(url){ const e = normalizeYouTube(url); return e ? `<div class="video"><iframe src="${esc(e)}" title="Lesson Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` : ""; }
-
-function isAdmin(){ return state.user?.role === "ADMIN" || state.user?.email === "julius.kaiza@gmail.com"; }
-function canEdit(){ return isAdmin() || state.user?.role === "TUTOR"; }
-
-function showAuth(view){ ["login", "signup", "reset"].forEach(v => $(`${v}View`).classList.toggle("hidden", v !== view)); }
-
+/* ---------- AUTHENTICATION ---------- */
+function showAuth(view){["login","signup","reset"].forEach(v=>$(`${v}View`).classList.toggle("hidden",v!==view))}
 async function init(){
-  $("modeNote").innerHTML = "Enterprise Cloud Database Sync Active.";
-  await loadDataFromCloud();
-  const s = sessionStorage.getItem(KEYS.session);
-  if(s) { state.user = JSON.parse(s); bootUI(); } else showAuth("login");
+ $("modeNote").textContent="Supabase Cloud Authentication, Database & Realtime enabled.";
+ applyPortalBranding();
+ const {data:{session}}=await sb.auth.getSession();
+ if(session){await completeSignIn(session.user)}
+ else showAuth("login");
+ sb.auth.onAuthStateChange(async(event,session)=>{
+   if(session && event!=="INITIAL_SESSION") await completeSignIn(session.user);
+   if(!session && event==="SIGNED_OUT"){state.user=null;state.profile=null;$("app").classList.add("hidden");$("auth").classList.remove("hidden");showAuth("login")}
+ });
 }
-window.onload = init;
+window.addEventListener("load",init);
 
-function bootUI(){
-  $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
-  $("profileName").textContent = state.user.name; $("profileRole").textContent = state.user.role;
-  $("roleBadge").textContent = state.user.role;
-  $("modeBadge").textContent = "Cloud Synchronized";
-  $("adminTools").classList.toggle("hidden", !canEdit());
-  
-  if($("userManagementBtn")) {
-    $("userManagementBtn").classList.toggle("hidden", !isAdmin());
-  }
-  
-  renderTree();
-  if(state.lessons.length) openLesson(state.lessons[0].id);
+async function completeSignIn(authUser){
+ const profile=await ensureProfile(authUser);
+ if(!profile)return;
+ if(profile.status==="DISABLED"){await sb.auth.signOut();return toast("Your account has been disabled by an administrator. Access denied.","err")}
+ state.profile=profile;
+ state.user={...profile,id:authUser.id,email:authUser.email};
+ sessionStorage.setItem(KEYS.session,JSON.stringify(state.user));
+ await loadDataFromCloud();
+ bootUI();
 }
-
+async function ensureProfile(authUser){
+ let {data,error}=await sb.from("app_users").select("*").eq("id",authUser.id).maybeSingle();
+ if(error){dbError(error,"Loading user profile");return null}
+ if(!data){
+   const meta=authUser.user_metadata||{};
+   const role=meta.role==="TUTOR"?"TUTOR":"STUDENT";
+   const payload={id:authUser.id,name:meta.name||authUser.email?.split("@")[0]||"User",email:(authUser.email||"").toLowerCase(),role,status:"ACTIVE",permissions:{}};
+   let result=await sb.from("app_users").insert(payload).select("*").single();
+   if(result.error){
+     result=await sb.from("app_users").insert({id:payload.id,name:payload.name,email:payload.email,role:payload.role,status:payload.status}).select("*").single();
+   }
+   if(result.error){dbError(result.error,"Creating user profile");return null}
+   data=result.data;
+ }
+ return data;
+}
 async function login(e){
-  e.preventDefault();
-  const email = $("loginEmail").value.trim().toLowerCase();
-  const pass = $("loginPassword").value;
-  
-  const users = await fetchCloudUsers();
-  let u = users.find(x => x.email === email);
-
-  if(email === "julius.kaiza@gmail.com") {
-    if(!u) {
-      u = { id: "admin-master", name: "Julius Kaiza (Admin)", email: "julius.kaiza@gmail.com", password: pass || "AdminPassword123!", role: "ADMIN", status: "ACTIVE" };
-      await saveCloudUser(u);
-    } else {
-      u.role = "ADMIN";
-      if(pass) u.password = pass;
-      await saveCloudUser(u);
-    }
-  } else {
-    if(!u || u.password !== pass) {
-      return toast("Invalid credentials provided. Check email or password.");
-    }
-  }
-
-  if(u.status === "DISABLED") {
-    return toast("Your account has been disabled by an administrator. Access denied.");
-  }
-
-  state.user = u; 
-  sessionStorage.setItem(KEYS.session, JSON.stringify(u)); 
-  bootUI();
+ e.preventDefault();
+ const email=$("loginEmail").value.trim().toLowerCase(),password=$("loginPassword").value;
+ const {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(error)return toast(error.message,"err");
+ await completeSignIn(data.user);
 }
-
 async function signup(e){
-  e.preventDefault();
-  const name = $("signupName").value.trim(), email = $("signupEmail").value.trim().toLowerCase();
-  const password = $("signupPassword").value, role = $("signupRole").value;
-
-  const users = await fetchCloudUsers();
-  if(users.some(x => x.email === email)) return toast("Email is already registered.");
-  const u = { id: uid("usr"), name, email, password, role, status: "ACTIVE" };
-  await saveCloudUser(u);
-  state.user = u; sessionStorage.setItem(KEYS.session, JSON.stringify(u)); bootUI();
+ e.preventDefault();
+ const name=$("signupName").value.trim(),email=$("signupEmail").value.trim().toLowerCase(),password=$("signupPassword").value,role=$("signupRole").value;
+ const {data,error}=await sb.auth.signUp({email,password,options:{data:{name,role}}});
+ if(error)return toast(error.message,"err");
+ if(data.user){
+   if(data.session) await completeSignIn(data.user);
+   else {showAuth("login");$("loginEmail").value=email;toast("Account created. Check your email if email confirmation is enabled, then sign in.");}
+ }
 }
-
 async function resetPassword(e){
-  e.preventDefault();
-  const email = $("resetEmail").value.trim().toLowerCase();
-  const users = await fetchCloudUsers();
-  const u = users.find(x => x.email === email);
-  if(!u) return toast("Email address not found in system records.");
-  toast(`Password recovery: Your current password is "${u.password}"`);
-  showAuth("login");
+ e.preventDefault();
+ const email=$("resetEmail").value.trim().toLowerCase();
+ const redirect=window.location.origin+window.location.pathname;
+ const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:redirect});
+ if(error)return toast(error.message,"err");
+ toast("Password reset instructions sent. Check your email.");
+ showAuth("login");
 }
-
 async function logout(){
-  if(state.activeStream) {
-    state.activeStream.getTracks().forEach(t => t.stop());
-    state.activeStream = null;
-  }
-  sessionStorage.removeItem(KEYS.session); state.user = null; location.reload();
+ await stopLiveStudioResources();
+ await sb.auth.signOut();
+ sessionStorage.removeItem(KEYS.session);
+ location.reload();
 }
-
-$("loginForm").onsubmit = login;
-$("signupForm").onsubmit = signup;
-$("resetForm").onsubmit = resetPassword;
-
-function openShareModal(){
-  const portalUrl = window.location.href;
-  const shareText = `Join me on ${state.config.portalTitle || "Mboineki LMS"}! Explore educational levels, classes, subjects, and lessons here: ${portalUrl}`;
-  const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
-  const emailUrl = `mailto:?subject=${encodeURIComponent("Join " + state.config.portalTitle)}&body=${encodeURIComponent(shareText)}`;
-
-  openModalContent(`
-    <h2>📤 Share Platform</h2>
-    <p class="muted">Invite students or colleagues to join this learning portal instantly via WhatsApp, Email, or by copying the link.</p>
-    <div class="card" style="background:#09111e">
-      <label>Portal Link</label>
-      <div class="row">
-        <input id="shareLinkInput" value="${esc(portalUrl)}" readonly>
-        <button class="btn primary" onclick="navigator.clipboard.writeText($('shareLinkInput').value); toast('Link copied to clipboard!');">Copy Link</button>
-      </div>
-    </div>
-    <div class="row wrap" style="margin-top:15px;justify-content:center">
-      <a class="btn success" href="${whatsappUrl}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">💬 Share via WhatsApp</a>
-      <a class="btn primary" href="${emailUrl}" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">✉️ Share via Email</a>
-    </div>
-    <div style="margin-top:20px;text-align:right">
-      <button class="btn" onclick="closeModal()">Close</button>
-    </div>
-  `);
+async function openPasswordModal(){
+ openModalContent(`<h2>🔒 Change Password</h2><form onsubmit="updatePassword(event)">
+<label>New Password (minimum 8 characters)</label><input id="newPass" type="password" minlength="8" required autocomplete="new-password">
+<div class="row" style="margin-top:18px;justify-content:flex-end"><button type="button" class="btn" onclick="closeModal()">Cancel</button><button class="btn primary">Update Password</button></div></form>`);
 }
-
-function openPasswordModal(){
-  openModalContent(`
-    <h2>🔒 Change Password</h2>
-    <form onsubmit="updatePassword(event)">
-      <label>Current Password</label>
-      <input id="oldPass" type="password" required>
-      <label>New Password (min 6 chars)</label>
-      <input id="newPass" type="password" minlength="6" required>
-      <div class="row" style="margin-top:18px;justify-content:flex-end">
-        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn primary">Update Password</button>
-      </div>
-    </form>
-  `);
-}
-
 async function updatePassword(e){
-  e.preventDefault();
-  const oldPass = $("oldPass").value;
-  const newPass = $("newPass").value;
-  
-  if(state.user.password && state.user.password !== oldPass && state.user.email !== "julius.kaiza@gmail.com") {
-    return toast("Current password is incorrect.");
-  }
-  
-  state.user.password = newPass;
-  await saveCloudUser(state.user);
-  sessionStorage.setItem(KEYS.session, JSON.stringify(state.user));
-  toast("Password updated successfully!");
-  closeModal();
+ e.preventDefault();const pass=$("newPass").value;
+ const {error}=await sb.auth.updateUser({password:pass});
+ if(error)return toast(error.message,"err");
+ toast("Password updated successfully!");closeModal();
 }
 
-async function openUserManagementModal(){
-  if(!isAdmin()) return toast("Access denied. Admin privileges required.");
-  const users = await fetchCloudUsers();
-  
-  openModalContent(`
-    <h2>👥 Admin Account Management, Permissions & Status</h2>
-    <p class="muted">Manage user roles, grant permissions, toggle account status (Enable/Disable), edit credentials, or delete accounts.</p>
-    
-    <div class="card" style="background:#09111e; margin-bottom:15px">
-      <h3>Add New User Account</h3>
-      <form onsubmit="adminCreateUser(event)">
-        <div class="grid">
-          <div><label>Full Name</label><input id="admNewName" required></div>
-          <div><label>Email</label><input id="admNewEmail" type="email" required></div>
-          <div><label>Password</label><input id="admNewPass" type="password" minlength="6" required></div>
-          <div><label>Role / Permissions</label><select id="admNewRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option><option value="ADMIN">Administrator</option></select></div>
-        </div>
-        <button class="btn success" style="margin-top:12px">Create User Account</button>
-      </form>
-    </div>
+/* ---------- CLOUD DATA ---------- */
+async function safeSelect(table,columns="*"){
+ const {data,error}=await sb.from(table).select(columns);
+ if(error){console.warn(`${table}:`,error.message);return []}
+ return data||[];
+}
+async function loadDataFromCloud(){
+ try{
+   const {data:configData}=await sb.from("app_config").select("*").eq("key","settings").maybeSingle();
+   if(configData?.value)state.config={...state.config,...configData.value};
 
-    <h3>Registered System Accounts (${users.length})</h3>
-    <div class="list" style="max-height:350px; overflow-y:auto">
-      ${users.map(u => `
-        <div class="item">
-          <div>
-            <strong>${esc(u.name)}</strong> (${esc(u.email)})<br>
-            <small class="muted">Role: <b>${esc(u.role)}</b> | Status: <span style="color:${u.status==='DISABLED'?'var(--danger)':'var(--success)'}">${esc(u.status || 'ACTIVE')}</span></small>
-          </div>
-          <div class="row">
-            <button class="btn warn" onclick="adminEditUserModal('${u.id}')">Edit / Permissions</button>
-            <button class="btn ${u.status === 'DISABLED' ? 'success' : 'danger'}" onclick="adminToggleUserStatus('${u.id}')">${u.status === 'DISABLED' ? 'Enable' : 'Disable'}</button>
-            ${u.email !== "julius.kaiza@gmail.com" && u.id !== state.user.id ? `<button class="btn danger" onclick="adminDeleteUser('${u.id}')">Delete</button>` : ``}
-          </div>
-        </div>
-      `).join("") || `<div class="empty">No registered user accounts found.</div>`}
-    </div>
+   const levelsData=await safeSelect("app_levels");
+   if(levelsData.length)state.levels=[...new Set(levelsData.map(l=>l.name).filter(Boolean))];
+   else state.levels=["Primary Level","Secondary Level"];
 
-    <div style="text-align:right;margin-top:20px">
-      <button class="btn" onclick="closeModal()">Close</button>
-    </div>
-  `);
+   const classesData=await safeSelect("app_classes");
+   state.classes={};
+   classesData.forEach(c=>{if(!state.classes[c.level])state.classes[c.level]=[];if(c.class_name&&!state.classes[c.level].includes(c.class_name))state.classes[c.level].push(c.class_name)});
+   if(!classesData.length)state.classes={"Primary Level":["Grade 5","Grade 6"],"Secondary Level":["Form 3","Form 4"]};
+
+   const subjectsData=await safeSelect("app_subjects");
+   state.subjects={};
+   subjectsData.forEach(s=>{const key=`${s.level}__${s.class_name}`;if(!state.subjects[key])state.subjects[key]=[];if(s.subject_name&&!state.subjects[key].includes(s.subject_name))state.subjects[key].push(s.subject_name)});
+   if(!subjectsData.length)state.subjects={"Primary Level__Grade 5":["Mathematics","Elementary Science"],"Secondary Level__Form 3":["Physics","Chemistry"]};
+
+   state.lessons=await safeSelect("app_lessons");
+   state.purchases=currentUserId()?await safeSelect("app_purchases"):[];
+
+   applyPortalBranding();
+ }catch(e){console.error(e);toast("Some cloud data could not be loaded. Check Supabase policies.","err")}
+}
+function applyPortalBranding(){
+ const title=state.config.portalTitle||CONFIG.DEFAULT_TITLE;
+ ["pageTitle","brandTitle","sidebarBrand"].forEach(id=>{if($(id))$(id).textContent=title});
+}
+async function refreshData(){await loadDataFromCloud();renderTree();if(state.active&&state.lessons.some(l=>l.id===state.active))openLesson(state.active)}
+async function upsert(table,payload,action="Saving data"){
+ const {data,error}=await sb.from(table).upsert(payload).select();
+ if(dbError(error,action))return null;return data;
+}
+async function deleteRow(table,column,value,action="Deleting data"){
+ const {error}=await sb.from(table).delete().eq(column,value);if(dbError(error,action))return false;return true;
 }
 
-async function adminCreateUser(e){
-  e.preventDefault();
-  const name = $("admNewName").value.trim();
-  const email = $("admNewEmail").value.trim().toLowerCase();
-  const password = $("admNewPass").value;
-  const role = $("admNewRole").value;
-
-  const users = await fetchCloudUsers();
-  if(users.some(x => x.email === email)) return toast("An account with this email already exists.");
-
-  const u = { id: uid("usr"), name, email, password, role, status: "ACTIVE" };
-  await saveCloudUser(u);
-  toast(`User account for "${name}" created successfully!`);
-  openUserManagementModal();
+/* ---------- UI ---------- */
+function bootUI(){
+ $("auth").classList.add("hidden");$("app").classList.remove("hidden");
+ $("profileName").textContent=state.user.name||"User";$("profileRole").textContent=state.user.role||"";
+ $("roleBadge").textContent=state.user.role||"USER";$("modeBadge").textContent="Cloud + Realtime";
+ $("adminTools").classList.toggle("hidden",!canEdit());$("userManagementBtn").classList.toggle("hidden",!isAdmin());
+ renderTree();
+ if(state.lessons.length)openLesson(state.lessons[0].id);else filterByLevel(state.levels[0]);
 }
-
-async function adminEditUserModal(userId){
-  const users = await fetchCloudUsers();
-  const u = users.find(x => x.id === userId);
-  if(!u) return toast("User account not found.");
-
-  openModalContent(`
-    <h2>✏️ Edit Account & Permissions</h2>
-    <form onsubmit="adminUpdateUser(event, '${u.id}')">
-      <label>Full Name</label>
-      <input id="editUsrName" value="${esc(u.name)}" required>
-      <label>Email</label>
-      <input id="editUsrEmail" type="email" value="${esc(u.email)}" required>
-      <label>New Password (leave blank to keep current)</label>
-      <input id="editUsrPass" type="password" placeholder="••••••••">
-      <label>Account Role & Permissions</label>
-      <select id="editUsrRole">
-        <option value="STUDENT" ${u.role==="STUDENT"?"selected":""}>Student</option>
-        <option value="TUTOR" ${u.role==="TUTOR"?"selected":""}>Teacher / Tutor</option>
-        <option value="ADMIN" ${u.role==="ADMIN"?"selected":""}>Administrator</option>
-      </select>
-      <label>Account Status</label>
-      <select id="editUsrStatus">
-        <option value="ACTIVE" ${u.status!=="DISABLED"?"selected":""}>Active</option>
-        <option value="DISABLED" ${u.status==="DISABLED"?"selected":""}>Disabled (Blocked)</option>
-      </select>
-      <div class="row" style="margin-top:18px;justify-content:flex-end">
-        <button type="button" class="btn" onclick="openUserManagementModal()">Back</button>
-        <button type="submit" class="btn primary">Save Changes</button>
-      </div>
-    </form>
-  `);
+function openModalContent(html){$("modalBox").innerHTML=html;$("modal").classList.add("open")}
+function closeModal(){$("modal").classList.remove("open");$("modalBox").innerHTML=""}
+function openShareModal(){
+ const portalUrl=window.location.href,shareText=`Join me on ${state.config.portalTitle||CONFIG.DEFAULT_TITLE}! Explore educational levels, classes, subjects and lessons here: ${portalUrl}`;
+ const whatsappUrl=`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`,emailUrl=`mailto:?subject=${encodeURIComponent("Join "+(state.config.portalTitle||CONFIG.DEFAULT_TITLE))}&body=${encodeURIComponent(shareText)}`;
+ openModalContent(`<h2>📤 Share Platform</h2><p class="muted">Invite students or colleagues via WhatsApp, Email, or a copied platform link.</p>
+<div class="card" style="background:#09111e"><label>Portal Link</label><div class="row"><input id="shareLinkInput" value="${esc(portalUrl)}" readonly><button class="btn primary" onclick="copyShareLink()">Copy Link</button></div></div>
+<div class="row wrap" style="margin-top:15px;justify-content:center"><a class="btn success" href="${whatsappUrl}" target="_blank" rel="noopener" style="text-decoration:none">💬 Share via WhatsApp</a><a class="btn primary" href="${emailUrl}" style="text-decoration:none">✉️ Share via Email</a></div>
+<div style="margin-top:20px;text-align:right"><button class="btn" onclick="closeModal()">Close</button></div>`);
 }
+async function copyShareLink(){try{await navigator.clipboard.writeText($("shareLinkInput").value);toast("Link copied to clipboard!")}catch{toast("Copy failed. Select and copy the link manually.","err")}}
+function normalizeYouTube(url){
+ if(!url)return null;try{const u=new URL(url.trim());let id="";
+ if(u.hostname.includes("youtu.be"))id=u.pathname.slice(1).split("/")[0];
+ else if(u.searchParams.get("v"))id=u.searchParams.get("v");
+ else if(u.pathname.includes("/embed/"))id=u.pathname.split("/embed/")[1].split("/")[0];
+ else if(u.pathname.includes("/shorts/"))id=u.pathname.split("/shorts/")[1].split("/")[0];
+ return id?`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=0&rel=0&playsinline=1`:url;
+ }catch{return url}}
+function youtubeBlock(url){const e=normalizeYouTube(url);return e?`<div class="video"><iframe src="${esc(e)}" title="Lesson Video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`:""}
 
-async function adminUpdateUser(e, userId){
-  e.preventDefault();
-  const name = $("editUsrName").value.trim();
-  const email = $("editUsrEmail").value.trim().toLowerCase();
-  const pass = $("editUsrPass").value;
-  const role = $("editUsrRole").value;
-  const status = $("editUsrStatus").value;
-
-  const users = await fetchCloudUsers();
-  const u = users.find(x => x.id === userId);
-  if(!u) return toast("User record not found.");
-
-  u.name = name;
-  u.email = email;
-  u.role = role;
-  u.status = status;
-  if(pass) u.password = pass;
-
-  await saveCloudUser(u);
-  toast("User permissions & account updated successfully!");
-  openUserManagementModal();
-}
-
-async function adminToggleUserStatus(userId){
-  const users = await fetchCloudUsers();
-  const u = users.find(x => x.id === userId);
-  if(!u) return toast("User record not found.");
-  if(u.email === "julius.kaiza@gmail.com") return toast("Cannot disable master administrator.");
-
-  u.status = (u.status === "DISABLED") ? "ACTIVE" : "DISABLED";
-  await saveCloudUser(u);
-  toast(`Account status updated to ${u.status}`);
-  openUserManagementModal();
-}
-
-async function adminDeleteUser(userId){
-  if(!confirm("Are you sure you want to permanently delete this user account?")) return;
-  await deleteCloudUser(userId);
-  toast("User account deleted.");
-  openUserManagementModal();
-}
-
-/* --- HIERARCHY MANAGER & EDITING (RENAME, ETC.) --- */
-function openManager(){
-  if(!isAdmin() && !canEdit()) return toast("Access denied.");
-  openModalContent(`
-    <h2>⚙️ Hierarchy & Curriculum Management (Rename & Edit)</h2>
-    <p class="muted">Rename, edit, or structure educational levels, classes, and subjects as Administrator.</p>
-    
-    <div class="card" style="background:#09111e; margin-bottom:15px">
-      <h3>Add New Level</h3>
-      <div class="row">
-        <input id="newLvlName" placeholder="e.g. Tertiary Level">
-        <button class="btn success" onclick="addLevel()">Add Level</button>
-      </div>
-    </div>
-
-    <div class="card" style="background:#09111e; margin-bottom:15px">
-      <h3>Add Class to Level</h3>
-      <div class="grid">
-        <div><label>Select Level</label><select id="mgrLevelSelect">${state.levels.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select></div>
-        <div><label>Class Name</label><input id="mgrClassName" placeholder="e.g. Form 5"></div>
-      </div>
-      <button class="btn success" style="margin-top:10px" onclick="addClass()">Add Class</button>
-    </div>
-
-    <div class="card" style="background:#09111e; margin-bottom:15px">
-      <h3>Add Subject to Class</h3>
-      <div class="grid">
-        <div><label>Level & Class</label><select id="mgrClassSelect">
-          ${Object.keys(state.classes).flatMap(lvl => (state.classes[lvl]||[]).map(cls => `<option value="${esc(lvl)}__${esc(cls)}">${esc(lvl)} › ${esc(cls)}</option>`)).join("")}
-        </select></div>
-        <div><label>Subject Name</label><input id="mgrSubjectName" placeholder="e.g. Biology"></div>
-      </div>
-      <button class="btn success" style="margin-top:10px" onclick="addSubject()">Add Subject</button>
-    </div>
-
-    <h3>Existing Curriculum Structures</h3>
-    <div class="list" style="max-height:250px; overflow-y:auto">
-      ${state.levels.map(lvl => `
-        <div class="item">
-          <div><strong>📁 Level:</strong> ${esc(lvl)}</div>
-          <div class="row">
-            <button class="btn warn" onclick="renameLevelPrompt('${esc(lvl)}')">Rename</button>
-            <button class="btn danger" onclick="deleteLevel('${esc(lvl)}')">Delete</button>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-
-    <div style="text-align:right;margin-top:20px">
-      <button class="btn" onclick="closeModal()">Close</button>
-    </div>
-  `);
-}
-
-async function addLevel(){
-  const name = $("newLvlName").value.trim();
-  if(!name) return toast("Enter level name.");
-  if(state.levels.includes(name)) return toast("Level already exists.");
-  state.levels.push(name);
-  await sb.from('app_levels').upsert({name});
-  toast("Level added successfully!");
-  renderTree();
-  openManager();
-}
-
-async function renameLevelPrompt(oldName){
-  const newName = prompt("Rename Level:", oldName);
-  if(!newName || newName.trim() === oldName) return;
-  const idx = state.levels.indexOf(oldName);
-  if(idx !== -1) state.levels[idx] = newName.trim();
-  
-  await sb.from('app_levels').delete().eq('name', oldName);
-  await sb.from('app_levels').upsert({name: newName.trim()});
-  
-  toast("Level renamed successfully!");
-  renderTree();
-  openManager();
-}
-
-async function deleteLevel(name){
-  if(!confirm(`Delete level "${name}"?`)) return;
-  state.levels = state.levels.filter(l => l !== name);
-  await sb.from('app_levels').delete().eq('name', name);
-  toast("Level deleted.");
-  renderTree();
-  openManager();
-}
-
-async function addClass(){
-  const level = $("mgrLevelSelect").value;
-  const cls = $("mgrClassName").value.trim();
-  if(!cls) return toast("Enter class name.");
-  if(!state.classes[level]) state.classes[level] = [];
-  if(state.classes[level].includes(cls)) return toast("Class already exists in this level.");
-  state.classes[level].push(cls);
-  await sb.from('app_classes').upsert({level, class_name: cls});
-  toast("Class added successfully!");
-  renderTree();
-  openManager();
-}
-
-async function addSubject(){
-  const val = $("mgrClassSelect").value;
-  if(!val) return toast("Select a class.");
-  const [level, cls] = val.split("__");
-  const sub = $("mgrSubjectName").value.trim();
-  if(!sub) return toast("Enter subject name.");
-  const key = `${level}__${cls}`;
-  if(!state.subjects[key]) state.subjects[key] = [];
-  if(state.subjects[key].includes(sub)) return toast("Subject already exists in this class.");
-  state.subjects[key].push(sub);
-  await sb.from('app_subjects').upsert({level, class_name: cls, subject_name: sub});
-  toast("Subject added successfully!");
-  renderTree();
-  openManager();
-}
-
-function openLessonModal(){
-  openModalContent(`
-    <h2>➕ Add Lesson Content</h2>
-    <form onsubmit="saveLesson(event)">
-      <label>Educational Level</label>
-      <select id="lessLevel" onchange="populateClassDropdown()">${state.levels.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select>
-      <label>Class</label>
-      <select id="lessClass"></select>
-      <label>Subject</label>
-      <select id="lessSubject"></select>
-      <label>Lesson Title</label>
-      <input id="lessTitle" required placeholder="e.g. Algebraic Equations">
-      <label>YouTube Video URL or Embed Link</label>
-      <input id="lessVideo" placeholder="https://www.youtube.com/watch?v=...">
-      <label>Access Type</label>
-      <select id="lessAccess"><option value="FREE">Free Content</option><option value="PAID">Paid Content</option></select>
-      <label>Price (USD if Paid)</label>
-      <input id="lessPrice" value="0" type="number" step="0.01">
-      <label>Lesson Text Content / Notes</label>
-      <textarea id="lessContent" placeholder="Enter full lesson notes or instructions here..."></textarea>
-      <div class="row" style="margin-top:18px;justify-content:flex-end">
-        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn primary">Save Lesson</button>
-      </div>
-    </form>
-  `);
-  populateClassDropdown();
-}
-
-function populateClassDropdown(){
-  const lvl = $("lessLevel").value;
-  const classes = state.classes[lvl] || [];
-  $("lessClass").innerHTML = classes.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  populateSubjectDropdown();
-  $("lessClass").onchange = populateSubjectDropdown;
-}
-
-function populateSubjectDropdown(){
-  const lvl = $("lessLevel").value;
-  const cls = $("lessClass").value;
-  const key = `${lvl}__${cls}`;
-  const subs = state.subjects[key] || [];
-  $("lessSubject").innerHTML = subs.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("");
-}
-
-async function saveLesson(e){
-  e.preventDefault();
-  const l = {
-    id: uid("les"),
-    level: $("lessLevel").value,
-    class: $("lessClass").value,
-    subject: $("lessSubject").value,
-    title: $("lessTitle").value.trim(),
-    video: $("lessVideo").value.trim(),
-    accessType: $("lessAccess").value,
-    price: $("lessPrice").value || "0",
-    content: $("lessContent").value
-  };
-  state.lessons.push(l);
-  await sb.from('app_lessons').upsert(l);
-  toast("Lesson added successfully!");
-  closeModal();
-  renderTree();
-  openLesson(l.id);
-}
-
-function openModalContent(html){
-  $("modalBox").innerHTML = html;
-  $("modal").classList.add("open");
-}
-function closeModal(){
-  $("modal").classList.remove("open");
-}
-
-/* --- HIERARCHY TREE & COLLAPSIBLE FOLDERS --- */
-function toggleFolder(key) {
-  state.expanded[key] = !state.expanded[key];
-  renderTree();
-}
-
+/* ---------- CURRICULUM TREE ---------- */
+function toggleFolder(key){state.expanded[key]=!state.expanded[key];renderTree()}
 function renderTree(){
-  const t = $("tree"); t.innerHTML = "";
-  
-  state.levels.forEach(level => {
-    const isLevelOpen = !!state.expanded[level];
-    const ld = document.createElement("div");
-    ld.className = `tree-item tree-level ${state.active === level ? "active" : ""}`;
-    ld.innerHTML = `<strong>${isLevelOpen ? '📂' : '📁'} ${esc(level)}</strong>`;
-    ld.onclick = (e) => {
-      e.stopPropagation();
-      toggleFolder(level);
-      filterByLevel(level);
-    };
-    t.appendChild(ld);
-    
-    if(isLevelOpen) {
-      const classList = state.classes[level] || [];
-      classList.forEach(cls => {
-        const clsKey = `${level}__${cls}`;
-        const isClassOpen = !!state.expanded[clsKey];
-        const cd = document.createElement("div");
-        cd.className = `tree-item tree-class ${state.active === clsKey ? "active" : ""}`;
-        cd.innerHTML = `<strong>${isClassOpen ? '🏫' : '🏛️'} ${esc(cls)}</strong>`;
-        cd.onclick = (e) => {
-          e.stopPropagation();
-          toggleFolder(clsKey);
-          filterByClass(level, cls);
-        };
-        t.appendChild(cd);
-        
-        if(isClassOpen) {
-          const subList = state.subjects[clsKey] || [];
-          subList.forEach(sub => {
-            const subKey = `${level}__${cls}__${sub}`;
-            const isSubOpen = !!state.expanded[subKey];
-            const sd = document.createElement("div");
-            sd.className = `tree-item tree-subject ${state.active === subKey ? "active" : ""}`;
-            sd.innerHTML = `<strong>${isSubOpen ? '📖' : '📘'} ${esc(sub)}</strong>`;
-            sd.onclick = (e) => {
-              e.stopPropagation();
-              toggleFolder(subKey);
-              filterBySubject(level, cls, sub);
-            };
-            t.appendChild(sd);
-            
-            if(isSubOpen) {
-              const lessonList = state.lessons.filter(l => l.level === level && l.class === cls && l.subject === sub);
-              lessonList.forEach(l => {
-                const x = document.createElement("div");
-                x.className = `tree-item tree-lesson ${state.active === l.id ? "active" : ""}`;
-                const badge = l.accessType === "PAID" ? " 🔒" : "";
-                x.innerHTML = `<span>▶ ${esc(l.title)}${badge}</span>`;
-                x.onclick = (e) => { e.stopPropagation(); openLesson(l.id); };
-                t.appendChild(x);
-              });
-            }
-          });
-        }
-      });
-    }
+ const t=$("tree");t.innerHTML="";
+ state.levels.forEach(level=>{
+  const ld=document.createElement("div");ld.className=`tree-item tree-level ${state.active===level?"active":""}`;ld.innerHTML=`<strong>${state.expanded[level]?"📂":"📁"} ${esc(level)}</strong>`;
+  ld.onclick=e=>{e.stopPropagation();toggleFolder(level);filterByLevel(level)};t.appendChild(ld);
+  if(!state.expanded[level])return;
+  (state.classes[level]||[]).forEach(cls=>{
+   const ck=`${level}__${cls}`,cd=document.createElement("div");cd.className=`tree-item tree-class ${state.active===ck?"active":""}`;cd.innerHTML=`<strong>${state.expanded[ck]?"🏫":"🏛️"} ${esc(cls)}</strong>`;
+   cd.onclick=e=>{e.stopPropagation();toggleFolder(ck);filterByClass(level,cls)};t.appendChild(cd);
+   if(!state.expanded[ck])return;
+   (state.subjects[ck]||[]).forEach(sub=>{
+    const sk=`${level}__${cls}__${sub}`,sd=document.createElement("div");sd.className=`tree-item tree-subject ${state.active===sk?"active":""}`;sd.innerHTML=`<strong>${state.expanded[sk]?"📖":"📘"} ${esc(sub)}</strong>`;
+    sd.onclick=e=>{e.stopPropagation();toggleFolder(sk);filterBySubject(level,cls,sub)};t.appendChild(sd);
+    if(!state.expanded[sk])return;
+    state.lessons.filter(l=>l.level===level&&l.class===cls&&l.subject===sub).forEach(l=>{
+      const x=document.createElement("div");x.className=`tree-item tree-lesson ${state.active===l.id?"active":""}`;x.innerHTML=`<span>▶ ${esc(l.title)}${l.accessType==="PAID"?" 🔒":""}</span>`;x.onclick=e=>{e.stopPropagation();openLesson(l.id)};t.appendChild(x);
+    });
+   });
   });
+ });
+}
+function filterByLevel(level){
+ state.active=level;renderTree();$("subheading").textContent=`Education Level: ${level}`;
+ const classes=state.classes[level]||[];
+ $("lessonArea").innerHTML=`<article class="card"><h1>📂 ${esc(level)}</h1><p class="muted">Parent educational level containing classes and subjects.</p></article>
+ <div class="card"><h3>Classes under ${esc(level)}</h3><div class="list">${classes.map(c=>`<div class="item"><strong>🏫 ${esc(c)}</strong><button class="btn primary" onclick="filterByClass(${JSON.stringify(level)},${JSON.stringify(c)})">View Class</button></div>`).join("")||`<div class="empty">No classes configured yet under this level.</div>`}</div></div>`;
+}
+function filterByClass(level,cls){
+ state.active=`${level}__${cls}`;renderTree();$("subheading").textContent=`${level} › ${cls}`;
+ const subjects=state.subjects[`${level}__${cls}`]||[];
+ $("lessonArea").innerHTML=`<article class="card"><h1>🏫 ${esc(cls)}</h1><p class="muted">Parent class under ${esc(level)}.</p></article>
+ <div class="card"><h3>Subjects under ${esc(cls)}</h3><div class="list">${subjects.map(s=>`<div class="item"><strong>📖 ${esc(s)}</strong><button class="btn primary" onclick="filterBySubject(${JSON.stringify(level)},${JSON.stringify(cls)},${JSON.stringify(s)})">View Subject</button></div>`).join("")||`<div class="empty">No subjects configured yet under this class.</div>`}</div></div>`;
+}
+function filterBySubject(level,cls,sub){
+ state.active=`${level}__${cls}__${sub}`;renderTree();$("subheading").textContent=`${level} › ${cls} › ${sub}`;
+ const lessons=state.lessons.filter(l=>l.level===level&&l.class===cls&&l.subject===sub);
+ $("lessonArea").innerHTML=`<article class="card"><h1>📖 ${esc(sub)}</h1><p class="muted">Learning content under ${esc(cls)} (${esc(level)}).</p></article>
+ <div class="card"><h3>Lessons in ${esc(sub)}</h3><div class="list">${lessons.map(l=>`<div class="item"><div><strong>▶ ${esc(l.title)}</strong><br><small class="muted">${l.accessType==="PAID"?`🔒 Paid Content ($${esc(l.price||"0")})`:"🆓 Free Content"}</small></div><button class="btn primary" onclick="openLesson(${JSON.stringify(l.id)})">Open Lesson</button></div>`).join("")||`<div class="empty">No lessons created yet under this subject.</div>`}</div></div>`;
 }
 
-function filterByLevel(level) {
-  state.active = level; renderTree();
-  $("subheading").textContent = `Education Level: ${level}`;
-  const classes = state.classes[level] || [];
-  $("lessonArea").innerHTML = `
-    <article class="card">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <h1>📂 ${esc(level)}</h1>
-          <p class="muted">Parent educational level containing classes and subjects.</p>
-        </div>
-      </div>
-    </article>
-    <div class="card">
-      <h3>Classes under ${esc(level)}</h3>
-      <div class="list">
-        ${classes.map(c => `<div class="item"><div><strong>🏫 ${esc(c)}</strong></div><button class="btn primary" onclick="filterByClass('${esc(level)}', '${esc(c)}')">View Classes</button></div>`).join("") || `<div class="empty">No classes configured yet under this level.</div>`}
-      </div>
-    </div>
-  `;
+/* ---------- LESSONS / ENROLMENT & GOOGLE PAY INTEGRATION ---------- */
+async function loadPurchases(){state.purchases=currentUserId()?await safeSelect("app_purchases"):[]}
+function hasPurchased(lessonId){return isAdmin()||state.purchases.some(p=>p.user_id===currentUserId()&&p.lesson_id===lessonId)||state.purchases.some(p=>p.userId===currentUserId()&&p.lessonId===lessonId)}
+function openLesson(id){
+ const l=state.lessons.find(x=>x.id===id);if(!l)return;
+ state.active=id;renderTree();$("subheading").textContent=`${l.level} › ${l.class} › ${l.subject} › ${l.title}`;
+ const unlocked=l.accessType!=="PAID"||hasPurchased(l.id);
+ let contentMarkup=unlocked?`${youtubeBlock(l.video)}<div class="card"><h3>Lesson Notes</h3><p style="white-space:pre-wrap;line-height:1.7">${esc(l.content||"No lesson notes have been added yet.")}</p></div>`:
+ `<div class="card" style="text-align:center;padding:40px"><h2>🔒 Paid Lesson Content</h2><p class="muted">This lesson requires enrollment before the protected content is available.</p><div id="gpay-container" style="display:inline-block;margin-top:15px"></div></div>`;
+ $("lessonArea").innerHTML=`<article class="card"><div class="row wrap" style="justify-content:space-between;align-items:flex-start"><div><small class="muted">${esc(l.level)} › ${esc(l.class)} › ${esc(l.subject)}</small><h1>${esc(l.title)}</h1></div><div class="row">${canEdit()?`<button class="btn warn" onclick="editLesson(${JSON.stringify(l.id)})">Edit</button><button class="btn danger" onclick="deleteLesson(${JSON.stringify(l.id)})">Delete</button>`:""}</div></div></article>${contentMarkup}`;
+ if(!unlocked) { initGooglePay(l); }
 }
 
-function filterByClass(level, cls) {
-  state.active = `${level}__${cls}`; renderTree();
-  $("subheading").textContent = `${level} › ${cls}`;
-  const subjects = state.subjects[`${level}__${cls}`] || [];
-  $("lessonArea").innerHTML = `
-    <article class="card">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <h1>🏫 ${esc(cls)}</h1>
-          <p class="muted">Parent class under ${esc(level)}.</p>
-        </div>
-      </div>
-    </article>
-    <div class="card">
-      <h3>Subjects under ${esc(cls)}</h3>
-      <div class="list">
-        ${subjects.map(s => `<div class="item"><div><strong>📖 ${esc(s)}</strong></div><button class="btn primary" onclick="filterBySubject('${esc(level)}', '${esc(cls)}', '${esc(s)}')">View Subjects</button></div>`).join("") || `<div class="empty">No subjects configured yet under this class.</div>`}
-      </div>
-    </div>
-  `;
-}
+/* Google Pay API Integration Logic */
+let paymentsClient = null;
 
-function filterBySubject(level, cls, sub) {
-  state.active = `${level}__${cls}__${sub}`; renderTree();
-  $("subheading").textContent = `${level} › ${cls} › ${sub}`;
-  const lessons = state.lessons.filter(l => l.level === level && l.class === cls && l.subject === sub);
-  $("lessonArea").innerHTML = `
-    <article class="card">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <h1>📖 ${esc(sub)}</h1>
-          <p class="muted">Parent subject for lessons and learning content under ${esc(cls)} (${esc(level)}).</p>
-        </div>
-      </div>
-    </article>
-    <div class="card">
-      <h3>Lessons in ${esc(sub)}</h3>
-      <div class="list">
-        ${lessons.map(l => `<div class="item"><div><strong>▶ ${esc(l.title)}</strong><br><small class="muted">${l.accessType==="PAID" ? '🔒 Paid Content ($'+l.price+')' : '🆓 Free Content'}</small></div><button class="btn primary" onclick="openLesson('${l.id}')">Open Lesson</button></div>`).join("") || `<div class="empty">No lessons created yet under this subject.</div>`}
-      </div>
-    </div>
-  `;
-}
-
-function hasPurchased(lessonId) {
-  if(isAdmin()) return true;
-  return state.purchases.some(p => p.userId === state.user.id && p.lessonId === lessonId);
-}
-
-function openLesson(id) {
-  const l = state.lessons.find(x => x.id === id);
-  if(!l) return;
-  state.active = id; renderTree();
-  $("subheading").textContent =`${l.level} › ${l.class} › ${l.subject} › ${l.title}`;
-
-  const isPaid = l.accessType === "PAID";
-  const unlocked = !isPaid || hasPurchased(l.id);
-
-  let contentMarkup = "";
-  if(!unlocked) {
-    contentMarkup = `
-      <div class="card" style="text-align:center; padding:40px">
-        <h2>🔒 Paid Lesson Content</h2>
-        <p class="muted">This lesson requires a secure enrollment fee of $${esc(l.price)} to unlock.</p>
-        <button class="btn success" onclick="simulatePurchase('${l.id}')">Unlock & Enroll Now ($${esc(l.price)})</button>
-      </div>
-    `;
-  } else {
-    contentMarkup = `
-      ${youtubeBlock(l.video)}
-      <div class="card">
-        <h3>Lesson Notes</h3>
-        <p style="white-space:pre-wrap; line-height:1.6">${esc(l.content)}</p>
-      </div>
-    `;
+function getGooglePaymentsClient() {
+  if (paymentsClient === null) {
+    paymentsClient = new google.payments.api.PaymentsClient({
+      environment: CONFIG.GOOGLE_PAY_ENVIRONMENT
+    });
   }
-
-  $("lessonArea").innerHTML = `
-    <article class="card">
-      <div class="row" style="justify-content:space-between; align-items:flex-start">
-        <div>
-          <small class="muted">${esc(l.level)} › ${esc(l.class)} › ${esc(l.subject)}</small>
-          <h1>${esc(l.title)}</h1>
-        </div>
-        ${canEdit() ? `<button class="btn warn" onclick="deleteLesson('${l.id}')">Delete Lesson</button>` : ``}
-      </div>
-    </article>
-    ${contentMarkup}
-  `;
+  return paymentsClient;
 }
 
-async function simulatePurchase(lessonId){
-  state.purchases.push({ userId: state.user.id, lessonId });
-  toast("Payment verified successfully! Lesson unlocked.");
+function getGooglePaymentDataRequest(lesson) {
+  const baseRequest = {
+    apiVersion: 2,
+    apiVersionMinor: 0
+  };
+  const allowedCardNetworks = ["AMEX", "DISCOVER", "JCB", "MASTERCARD", "VISA"];
+  const allowedCardAuthMethods = ["PAN_ONLY", "CRYPTOGRAM_3DS"];
+  
+  const baseCardPaymentMethod = {
+    type: "CARD",
+    parameters: {
+      allowedAuthMethods: allowedCardAuthMethods,
+      allowedCardNetworks: allowedCardNetworks
+    }
+  };
+
+  const cardPaymentMethod = Object.assign(
+    {},
+    baseCardPaymentMethod,
+    {
+      tokenizationSpecification: {
+        type: "PAYMENT_GATEWAY",
+        parameters: {
+          "gateway": "example",
+          "gatewayMerchantId": CONFIG.GOOGLE_PAY_MERCHANT_ID || "exampleGatewayMerchantId"
+        }
+      }
+    }
+  );
+
+  const paymentDataRequest = Object.assign({}, baseRequest);
+  paymentDataRequest.allowedPaymentMethods = [cardPaymentMethod];
+  paymentDataRequest.transactionInfo = {
+    totalPriceStatus: "FINAL",
+    totalPrice: String(lesson.price || "0.00"),
+    currencyCode: "USD"
+  };
+  paymentDataRequest.merchantInfo = {
+    merchantId: CONFIG.GOOGLE_PAY_MERCHANT_ID || "BCR2DN6D3KP7TTTC",
+    merchantName: state.config.portalTitle || CONFIG.DEFAULT_TITLE
+  };
+  return paymentDataRequest;
+}
+
+function initGooglePay(lesson) {
+  const paymentsClient = getGooglePaymentsClient();
+  const baseRequest = { apiVersion: 2, apiVersionMinor: 0 };
+  const baseCardPaymentMethod = {
+    type: "CARD",
+    parameters: { allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"], allowedCardNetworks: ["AMEX", "DISCOVER", "JCB", "MASTERCARD", "VISA"] }
+  };
+  const isReadyToPayRequest = Object.assign({}, baseRequest, { allowedPaymentMethods: [baseCardPaymentMethod] });
+
+  paymentsClient.isReadyToPay(isReadyToPayRequest)
+    .then(function(response) {
+      if (response.result) {
+        const button = paymentsClient.createButton({
+          onClick: () => onGooglePayClicked(lesson),
+          allowedPaymentMethods: [baseCardPaymentMethod]
+        });
+        const container = $("gpay-container");
+        if(container) {
+          container.innerHTML = "";
+          container.appendChild(button);
+        }
+      } else {
+        const container = $("gpay-container");
+        if(container) container.innerHTML = `<button class="btn success" onclick="fallbackEnroll(${JSON.stringify(lesson.id)})">Enroll Now ($${esc(lesson.price)})</button>`;
+      }
+    })
+    .catch(function(err) {
+      console.error("Google Pay readiness error:", err);
+      const container = $("gpay-container");
+      if(container) container.innerHTML = `<button class="btn success" onclick="fallbackEnroll(${JSON.stringify(lesson.id)})">Enroll Now ($${esc(lesson.price)})</button>`;
+    });
+}
+
+function onGooglePayClicked(lesson) {
+  const paymentsClient = getGooglePaymentsClient();
+  const paymentDataRequest = getGooglePaymentDataRequest(lesson);
+  paymentsClient.loadPaymentData(paymentDataRequest)
+    .then(async function(paymentData) {
+      // Payment authorized successfully by Google Pay. Process and record purchase in Supabase.
+      const paymentToken = paymentData.paymentMethodData.tokenizationData.token;
+      const { error } = await sb.from("app_purchases").upsert({
+        user_id: currentUserId(),
+        lesson_id: lesson.id,
+        status: "PAID",
+        source: "GOOGLE_PAY",
+        amount: lesson.price,
+        currency: "USD",
+        transaction_reference: paymentToken ? "gpay_" + crypto.randomUUID() : "gpay_test"
+      });
+      if(error) {
+        toast("Payment successful via Google Pay, but database sync failed: " + error.message, "err");
+        return;
+      }
+      toast("Payment complete! Lesson unlocked.");
+      await loadPurchases();
+      openLesson(lesson.id);
+    })
+    .catch(function(err) {
+      if (err.statusCode !== "CANCELED") {
+        console.error("Google Pay error:", err);
+        toast("Google Pay transaction failed.", "err");
+      }
+    });
+}
+
+async function fallbackEnroll(lessonId) {
+  // Fallback direct grant for testing environments if Google Pay widget fails or is restricted
+  const { error } = await sb.from("app_purchases").upsert({
+    user_id: currentUserId(),
+    lesson_id: lessonId,
+    status: "PAID",
+    source: "DIRECT_TEST",
+    currency: "USD"
+  });
+  if(error) return toast(error.message, "err");
+  toast("Enrollment successful!");
+  await loadPurchases();
   openLesson(lessonId);
 }
 
+async function adminGrantPurchase(lessonId,userId){
+ if(!isAdmin())return toast("Admin privileges required.","err");
+ const {error}=await sb.from("app_purchases").upsert({user_id:userId,lesson_id:lessonId,status:"PAID",source:"ADMIN"});
+ if(error)return toast(error.message,"err");await loadPurchases();toast("Enrollment granted.");closeModal();openLesson(lessonId);
+}
+function openLessonModal(editId=null){
+ const l=editId?state.lessons.find(x=>x.id===editId):null;
+ if(editId&&!l)return toast("Lesson not found.","err");
+ openModalContent(`<h2>${l?"✏️ Edit":"➕ Add"} Lesson Content</h2><form onsubmit="saveLesson(event,${l?JSON.stringify(l.id):"null"})">
+<label>Educational Level</label><select id="lessLevel" onchange="populateClassDropdown()">${state.levels.map(x=>`<option ${l?.level===x?"selected":""} value="${esc(x)}">${esc(x)}</option>`).join("")}</select>
+<label>Class</label><select id="lessClass"></select><label>Subject</label><select id="lessSubject"></select>
+<label>Lesson Title</label><input id="lessTitle" required value="${esc(l?.title||"")}" placeholder="e.g. Algebraic Equations">
+<label>YouTube Video URL or Embed Link (optional)</label><input id="lessVideo" value="${esc(l?.video||"")}" placeholder="Leave blank if no YouTube/online video is used">
+<label>Access Type</label><select id="lessAccess"><option value="FREE" ${l?.accessType!=="PAID"?"selected":""}>Free Content</option><option value="PAID" ${l?.accessType==="PAID"?"selected":""}>Paid Content</option></select>
+<label>Price (USD if Paid)</label><input id="lessPrice" value="${esc(l?.price||"0")}" type="number" min="0" step="0.01">
+<label>Lesson Text Content / Notes</label><textarea id="lessContent" placeholder="Enter full lesson notes, instructions or resources...">${esc(l?.content||"")}</textarea>
+<div class="row" style="margin-top:18px;justify-content:flex-end"><button type="button" class="btn" onclick="closeModal()">Cancel</button><button class="btn primary">${l?"Save Changes":"Save Lesson"}</button></div></form>`);
+ $("lessLevel").dataset.editId=l?.id||"";$("lessClass").dataset.editClass=l?.class||"";$("lessSubject").dataset.editSubject=l?.subject||"";populateClassDropdown();
+}
+function populateClassDropdown(){
+ const lvl=$("lessLevel").value,classes=state.classes[lvl]||[],select=$("lessClass");const wanted=select.dataset.editClass;
+ select.innerHTML=classes.map(c=>`<option ${c===wanted?"selected":""} value="${esc(c)}">${esc(c)}</option>`).join("");populateSubjectDropdown();select.onchange=()=>{select.dataset.editClass="";populateSubjectDropdown()};
+}
+function populateSubjectDropdown(){
+ const lvl=$("lessLevel").value,cls=$("lessClass").value,subs=state.subjects[`${lvl}__${cls}`]||[],select=$("lessSubject"),wanted=select.dataset.editSubject;
+ select.innerHTML=subs.map(s=>`<option ${s===wanted?"selected":""} value="${esc(s)}">${esc(s)}</option>`).join("");select.dataset.editSubject="";
+}
+async function saveLesson(e,editId=null){
+ e.preventDefault();if(!canEdit())return toast("Access denied.","err");
+ const payload={level:$("lessLevel").value,class:$("lessClass").value,subject:$("lessSubject").value,title:$("lessTitle").value.trim(),video:$("lessVideo").value.trim(),accessType:$("lessAccess").value,price:$("lessPrice").value||"0",content:$("lessContent").value.trim()};
+ if(!payload.class||!payload.subject)return toast("Configure the class and subject first.","err");
+ let result;
+ if(editId){result=await upsert("app_lessons",{...payload,id:editId},"Updating lesson");if(!result)return;const i=state.lessons.findIndex(x=>x.id===editId);if(i>=0)state.lessons[i]={...state.lessons[i],...payload,id:editId};}
+ else{const row={...payload,id:uid("les")};result=await upsert("app_lessons",row,"Saving lesson");if(!result)return;state.lessons.push(row)}
+ toast(editId?"Lesson updated successfully!":"Lesson added successfully!");closeModal();renderTree();openLesson(editId||result?.[0]?.id||state.lessons.at(-1).id);
+}
+async function editLesson(id){if(!canEdit())return toast("Access denied.","err");openLessonModal(id)}
 async function deleteLesson(id){
-  if(!confirm("Are you sure you want to delete this lesson?")) return;
-  state.lessons = state.lessons.filter(x => x.id !== id);
-  await sb.from('app_lessons').delete().eq('id', id);
-  toast("Lesson deleted.");
-  renderTree();
-  if(state.lessons.length) openLesson(state.lessons[0].id);
-  else $("lessonArea").innerHTML = `<div class="card"><h2>No lessons available.</h2></div>`;
+ if(!canEdit()||!confirm("Permanently delete this lesson?"))return;
+ if(!await deleteRow("app_lessons","id",id,"Deleting lesson"))return;
+ state.lessons=state.lessons.filter(x=>x.id!==id);renderTree();state.lessons.length?openLesson(state.lessons[0].id):$("lessonArea").innerHTML=`<div class="card"><h2>No lessons available.</h2></div>`;toast("Lesson deleted.");
 }
 
-/* --- LIVE STUDIO & INTERACTIVE WHITEBOARD --- */
-function openLiveStudio(){
-  openModalContent(`
-    <h2>🔴 Live Classroom Studio & Interactive Whiteboard</h2>
-    <p class="muted">Broadcast your webcam or share your screen live, and collaborate with students in real time using the interactive whiteboard and live chat.</p>
-    
-    <div class="class-grid">
-      <div>
-        <div class="video" style="margin:0"><video id="localVideo" autoplay playsinline muted></video></div>
-        <div class="row wrap" style="margin-top:10px">
-          <button class="btn primary" onclick="startCamera()">📷 Start Camera</button>
-          <button class="btn purple" onclick="startScreenShare()">💻 Share Screen</button>
-          <button class="btn danger" onclick="stopStream()">⏹ Stop Stream</button>
-        </div>
-      </div>
-      <div class="chat-box">
-        <h4>Live Session Chat</h4>
-        <div id="chatMessages" class="chat-messages">
-          <div class="chat-msg"><b>System:</b> Welcome to Live Studio.</div>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <input id="chatInput" placeholder="Type message..." onkeydown="if(event.key==='Enter')sendChat()">
-          <button class="btn primary" onclick="sendChat()">Send</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="whiteboard-container">
-      <div class="row" style="position:absolute; top:8px; left:8px; z-index:10; background:var(--surface); padding:4px 8px; border-radius:6px">
-        <label style="margin:0; font-size:11px">Color:</label>
-        <input type="color" id="wbColor" value="#0b1220" style="width:30px; height:24px; padding:0; border:0">
-        <button class="btn" style="padding:3px 8px; font-size:11px" onclick="clearWhiteboard()">Clear Canvas</button>
-      </div>
-      <canvas id="whiteboardCanvas"></canvas>
-    </div>
-
-    <div style="text-align:right; margin-top:20px">
-      <button class="btn" onclick="closeLiveModal()">Exit Studio</button>
-    </div>
-  `);
-  setTimeout(initWhiteboard, 200);
+/* ---------- CURRICULUM MANAGER ---------- */
+function openManager(){
+ if(!canEdit())return toast("Access denied.","err");
+ const classOptions=Object.keys(state.classes).flatMap(l=>(state.classes[l]||[]).map(c=>`<option value="${esc(JSON.stringify([l,c]))}">${esc(l)} › ${esc(c)}</option>`)).join("");
+ openModalContent(`<h2>⚙️ Hierarchy & Curriculum Management</h2><p class="muted">Create and edit educational levels, classes, subjects and lessons without hard-coded curriculum assumptions.</p>
+<div class="card" style="background:#09111e"><h3>Add New Level</h3><div class="row"><input id="newLvlName" placeholder="e.g. Tertiary Level"><button class="btn success" onclick="addLevel()">Add Level</button></div></div>
+<div class="card" style="background:#09111e"><h3>Add Class to Level</h3><div class="grid"><div><label>Select Level</label><select id="mgrLevelSelect">${state.levels.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select></div><div><label>Class Name</label><input id="mgrClassName" placeholder="e.g. Form 5"></div></div><button class="btn success" style="margin-top:10px" onclick="addClass()">Add Class</button></div>
+<div class="card" style="background:#09111e"><h3>Add Subject to Class</h3><div class="grid"><div><label>Level & Class</label><select id="mgrClassSelect">${classOptions}</select></div><div><label>Subject Name</label><input id="mgrSubjectName" placeholder="e.g. Biology"></div></div><button class="btn success" style="margin-top:10px" onclick="addSubject()">Add Subject</button></div>
+<h3>Existing Curriculum Structures</h3><div class="list" style="max-height:420px;overflow:auto">${state.levels.map(l=>`<div class="item"><div><strong>📁 ${esc(l)}</strong><div class="small muted">${(state.classes[l]||[]).length} class(es)</div></div><div class="row wrap"><button class="btn warn" onclick="renameLevelPrompt(${JSON.stringify(l)})">Rename</button><button class="btn danger" onclick="deleteLevel(${JSON.stringify(l)})">Delete</button></div></div>`).join("")||`<div class="empty">No levels.</div>`}</div>
+<div style="text-align:right;margin-top:20px"><button class="btn" onclick="closeModal()">Close</button></div>`);
+}
+async function addLevel(){const name=$("newLvlName").value.trim();if(!name)return toast("Enter level name.","err");if(state.levels.some(x=>x.toLowerCase()===name.toLowerCase()))return toast("Level already exists.","err");if(!await upsert("app_levels",{name},"Adding level"))return;state.levels.push(name);toast("Level added successfully!");renderTree();openManager()}
+async function renameLevelPrompt(oldName){
+ const name=prompt("Rename Level:",oldName)?.trim();if(!name||name===oldName)return;if(state.levels.includes(name))return toast("That level already exists.","err");
+ const {error}=await sb.from("app_levels").update({name}).eq("name",oldName);if(dbError(error,"Renaming level"))return;
+ await sb.from("app_classes").update({level:name}).eq("level",oldName);await sb.from("app_subjects").update({level:name}).eq("level",oldName);await sb.from("app_lessons").update({level:name}).eq("level",oldName);
+ state.levels=state.levels.map(x=>x===oldName?name:x);if(state.classes[oldName]){state.classes[name]=state.classes[oldName];delete state.classes[oldName]}
+ Object.keys(state.subjects).forEach(k=>{if(k.startsWith(oldName+"__")){const v=state.subjects[k],nk=name+k.slice(oldName.length);state.subjects[nk]=v;delete state.subjects[k]}});
+ state.lessons=state.lessons.map(l=>l.level===oldName?{...l,level:name}:l);toast("Level renamed successfully!");renderTree();openManager();
+}
+async function deleteLevel(name){
+ if(!confirm(`Delete level "${name}" and its classes, subjects and lessons? This cannot be undone.`))return;
+ const {error}=await sb.from("app_levels").delete().eq("name",name);if(dbError(error,"Deleting level"))return;
+ await sb.from("app_classes").delete().eq("level",name);await sb.from("app_subjects").delete().eq("level",name);await sb.from("app_lessons").delete().eq("level",name);
+ state.levels=state.levels.filter(x=>x!==name);delete state.classes[name];Object.keys(state.subjects).filter(k=>k.startsWith(name+"__")).forEach(k=>delete state.subjects[k]);state.lessons=state.lessons.filter(l=>l.level!==name);
+ toast("Level and dependent curriculum deleted.");renderTree();state.levels.length?filterByLevel(state.levels[0]):$("lessonArea").innerHTML=`<div class="card"><h2>No curriculum configured.</h2></div>`;openManager();
+}
+async function addClass(){
+ const level=$("mgrLevelSelect").value,cls=$("mgrClassName").value.trim();if(!cls)return toast("Enter class name.","err");
+ if((state.classes[level]||[]).some(x=>x.toLowerCase()===cls.toLowerCase()))return toast("Class already exists.","err");
+ if(!await upsert("app_classes",{level,class_name:cls},"Adding class"))return;
+ (state.classes[level]??=[]).push(cls);toast("Class added successfully!");renderTree();openManager();
+}
+async function addSubject(){
+ const val=$("mgrClassSelect").value;if(!val)return toast("Select a class.","err");const [level,cls]=JSON.parse(val),sub=$("mgrSubjectName").value.trim();if(!sub)return toast("Enter subject name.","err");
+ const key=`${level}__${cls}`;if((state.subjects[key]||[]).some(x=>x.toLowerCase()===sub.toLowerCase()))return toast("Subject already exists.","err");
+ if(!await upsert("app_subjects",{level,class_name:cls,subject_name:sub},"Adding subject"))return;(state.subjects[key]??=[]).push(sub);toast("Subject added successfully!");renderTree();openManager();
 }
 
+/* ---------- ADMIN USER MANAGEMENT ---------- */
+async function fetchCloudUsers(){return await safeSelect("app_users")}
+async function openUserManagementModal(){
+ if(!isAdmin())return toast("Admin privileges required.","err");
+ const users=await fetchCloudUsers();
+ openModalContent(`<h2>👥 Admin Account Management</h2><p class="muted">Manage roles, permissions and account status. Passwords are handled securely by Supabase Auth and are never exposed here.</p>
+<div class="card" style="background:#09111e"><h3>Invite / Create User</h3><form onsubmit="adminCreateUser(event)"><div class="grid"><div><label>Full Name</label><input id="admNewName" required></div><div><label>Email</label><input id="admNewEmail" type="email" required></div><div><label>Temporary Password</label><input id="admNewPass" type="password" minlength="8" required></div><div><label>Your Admin Password</label><input id="admAdminPass" type="password" minlength="8" required autocomplete="current-password"></div><div><label>Role</label><select id="admNewRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option><option value="ADMIN">Administrator</option></select></div></div><p class="small muted">If your Supabase project requires email confirmation, the administrator-created account may need confirmation before first login.</p><button class="btn success">Create Account</button></form></div>
+<h3>Registered Accounts (${users.length})</h3><div class="list" style="max-height:380px;overflow:auto">${users.map(u=>`<div class="item"><div><strong>${esc(u.name)}</strong> (${esc(u.email)})<br><small class="muted">Role: <b>${esc(u.role||"STUDENT")}</b> · Status: <b class="${u.status==="DISABLED"?"danger-text":""}">${esc(u.status||"ACTIVE")}</b></small></div><div class="row wrap"><button class="btn warn" onclick="adminEditUserModal(${JSON.stringify(u.id)})">Edit</button><button class="btn ${u.status==="DISABLED"?"success":"danger"}" onclick="adminToggleUserStatus(${JSON.stringify(u.id)})">${u.status==="DISABLED"?"Enable":"Disable"}</button>${u.id!==currentUserId()&&u.email?.toLowerCase()!==CONFIG.ADMIN_EMAIL?`<button class="btn danger" onclick="adminDeleteUser(${JSON.stringify(u.id)})">Delete</button>`:""}</div></div>`).join("")||`<div class="empty">No accounts found.</div>`}</div>
+<div style="text-align:right;margin-top:20px"><button class="btn" onclick="closeModal()">Close</button></div>`);
+}
+async function adminCreateUser(e){
+ e.preventDefault();if(!isAdmin())return;
+ const name=$("admNewName").value.trim(),email=$("admNewEmail").value.trim().toLowerCase(),password=$("admNewPass").value,adminPassword=$("admAdminPass").value,role=$("admNewRole").value;
+ if(email===CONFIG.ADMIN_EMAIL)return toast("Use the existing master administrator account.","err");
+ const {data,error}=await sb.auth.signUp({email,password,options:{data:{name,role}}});
+ if(error)return toast(error.message,"err");
+ if(!data.user)return toast("User account could not be created.","err");
+ const profile={id:data.user.id,name,email,role,status:"ACTIVE",permissions:{}};
+ const r=await sb.from("app_users").upsert(profile);
+ if(r.error)return toast(`Auth account created, but profile failed: ${r.error.message}`,"err");
+ if(data.session){
+   await sb.auth.signOut();
+   const adminLogin=await sb.auth.signInWithPassword({email:CONFIG.ADMIN_EMAIL,password:adminPassword});
+   if(adminLogin.error)return toast("New account created, but administrator re-authentication failed. Sign in again.","err");
+   await completeSignIn(adminLogin.data.user);
+ }
+ toast("User account created successfully.");openUserManagementModal();
+}
+
+async function adminEditUserModal(userId){
+ const users=await fetchCloudUsers(),u=users.find(x=>x.id===userId);if(!u)return toast("User not found.","err");
+ openModalContent(`<h2>✏️ Edit Account & Permissions</h2><form onsubmit="adminUpdateUser(event,${JSON.stringify(u.id)})"><label>Full Name</label><input id="editUsrName" value="${esc(u.name)}" required><label>Email (profile email)</label><input id="editUsrEmail" type="email" value="${esc(u.email)}" required><label>Account Role</label><select id="editUsrRole"><option value="STUDENT" ${u.role==="STUDENT"?"selected":""}>Student</option><option value="TUTOR" ${u.role==="TUTOR"?"selected":""}>Teacher / Tutor</option><option value="ADMIN" ${u.role==="ADMIN"?"selected":""}>Administrator</option></select><label>Account Status</label><select id="editUsrStatus"><option value="ACTIVE" ${u.status!=="DISABLED"?"selected":""}>Active</option><option value="DISABLED" ${u.status==="DISABLED"?"selected":""}>Disabled (Blocked)</option></select><label>Permissions JSON (optional)</label><textarea id="editUsrPerm" placeholder='{"manage_content":true}'>${esc(JSON.stringify(u.permissions||{},null,2))}</textarea><div class="row" style="justify-content:flex-end;margin-top:18px"><button type="button" class="btn" onclick="openUserManagementModal()">Back</button><button class="btn primary">Save Changes</button></div></form>`);
+}
+async function adminUpdateUser(e,id){
+ e.preventDefault();if(!isAdmin())return;const name=$("editUsrName").value.trim(),email=$("editUsrEmail").value.trim().toLowerCase(),role=$("editUsrRole").value,status=$("editUsrStatus").value;
+ let permissions={};try{permissions=JSON.parse($("editUsrPerm").value||"{}")}catch{return toast("Permissions must be valid JSON.","err")}
+ if(email===CONFIG.ADMIN_EMAIL&&status==="DISABLED")return toast("Cannot disable master administrator.","err");
+ const {error}=await sb.from("app_users").update({name,email,role,status,permissions}).eq("id",id);if(dbError(error,"Updating account"))return;toast("Account updated.");openUserManagementModal();
+}
+async function adminToggleUserStatus(id){
+ if(!isAdmin())return;const users=await fetchCloudUsers(),u=users.find(x=>x.id===id);if(!u)return;if(u.email?.toLowerCase()===CONFIG.ADMIN_EMAIL)return toast("Cannot disable master administrator.","err");
+ const status=u.status==="DISABLED"?"ACTIVE":"DISABLED";const {error}=await sb.from("app_users").update({status}).eq("id",id);if(dbError(error,"Updating account status"))return;toast(`Account ${status==="ACTIVE"?"enabled":"disabled"}.`);openUserManagementModal();
+}
+async function adminDeleteUser(id){
+ if(!isAdmin()||!confirm("Delete this profile? The linked Supabase Auth account may require deletion through a trusted server/service-role function."))return;
+ const users=await fetchCloudUsers(),u=users.find(x=>x.id===id);if(!u)return;
+ if(u.email?.toLowerCase()===CONFIG.ADMIN_EMAIL)return toast("Cannot delete master administrator.","err");
+ if(!await deleteRow("app_users","id",id,"Deleting user profile"))return;toast("User profile deleted. Remove the Auth identity through a trusted Supabase admin function if required.");openUserManagementModal();
+}
+
+/* ---------- REAL-TIME LIVE STUDIO ---------- */
+let isDrawing=false,lastX=0,lastY=0;
+function makeRoomId(){
+ const q=new URLSearchParams(location.search).get("room");
+ return q?.trim()||"main-classroom";
+}
+async function openLiveStudio(){
+ const room=makeRoomId();state.liveRoomId=room;
+ openModalContent(`<h2>🔴 Live Classroom Studio & Interactive Whiteboard</h2><p class="muted">Optional camera, microphone and screen sharing. The chat and whiteboard synchronize through Supabase Realtime. Video uses browser WebRTC where network conditions permit.</p>
+ <div class="card" style="background:#09111e"><div class="row wrap"><strong>Room:</strong><code id="liveRoomLabel">${esc(room)}</code><button class="btn" onclick="copyRoomLink()">Copy Room Link</button></div></div>
+ <div class="class-grid"><div><div id="videoGrid" class="video-grid"><div class="peer-video"><video id="localVideo" autoplay playsinline muted></video><div class="peer-label">You</div></div></div>
+ <div class="row wrap"><button class="btn primary" onclick="startCamera()">📷 Start Camera</button><button class="btn purple" onclick="startScreenShare()">💻 Share Screen</button><button class="btn danger" onclick="stopStream()">⏹ Stop Stream</button></div></div>
+ <div class="chat-box"><h4>Live Session Chat</h4><div id="chatMessages" class="chat-messages"><div class="chat-msg"><b>System:</b> Connecting to realtime classroom…</div></div><div class="row" style="margin-top:8px"><input id="chatInput" placeholder="Type message…" onkeydown="if(event.key==='Enter')sendChat()"><button class="btn primary" onclick="sendChat()">Send</button></div></div></div>
+ <div class="whiteboard-container"><div class="row" style="position:absolute;top:8px;left:8px;z-index:10;background:#111c2eee;padding:4px 8px;border-radius:6px"><label style="margin:0;font-size:11px">Color:</label><input type="color" id="wbColor" value="#0b1220" style="width:30px;height:24px;padding:0;border:0"><button class="btn" style="padding:3px 8px;font-size:11px" onclick="clearWhiteboard()">Clear Canvas</button></div><canvas id="whiteboardCanvas"></canvas></div>
+ <div style="text-align:right;margin-top:20px"><button class="btn" onclick="closeLiveModal()">Exit Studio</button></div>`);
+ setTimeout(()=>{initWhiteboard();connectLiveRoom(room)},100);
+}
+async function copyRoomLink(){const room=state.liveRoomId||"main-classroom";const u=new URL(location.href);u.searchParams.set("room",room);try{await navigator.clipboard.writeText(u.toString());toast("Room link copied. Share it with your class.");}catch{toast("Could not copy room link.","err")}}
+async function connectLiveRoom(room){
+ if(state.liveChannel)await sb.removeChannel(state.liveChannel);
+ const channel=sb.channel(room,{config:{broadcast:{self:false}}});
+ channel.on("broadcast",{event:"chat"},({payload})=>appendChat(payload,false));
+ channel.on("broadcast",{event:"wb"},({payload})=>applyWhiteboardEvent(payload));
+ channel.on("broadcast",{event:"signal"},async({payload})=>handleWebRTCSignal(payload));
+ channel.on("broadcast",{event:"presence"},({payload})=>handlePresence(payload));
+ channel.on("postgres_changes",{event:"INSERT",schema:"public",table:"app_live_messages",filter:`room_id=eq.${room}`},payload=>{const m=payload.new;if(m.user_id!==currentUserId())appendChat({name:m.user_name,text:m.message},false)});
+ channel.on("postgres_changes",{event:"INSERT",schema:"public",table:"app_whiteboard_events",filter:`room_id=eq.${room}`},payload=>{if(payload.new.user_id!==currentUserId())applyWhiteboardEvent(payload.new.event)});
+ channel.on("presence",{event:"sync"},async()=>{
+   const people=channel.presenceState();
+   for(const key of Object.keys(people)){
+     const person=people[key]?.[0];
+     if(person?.user_id && person.user_id!==currentUserId()){
+       if(String(currentUserId())<String(person.user_id)) await createPeer(person.user_id,true,person.name||"Participant");
+     }
+   }
+ });
+ channel.subscribe(async status=>{
+   if(status==="SUBSCRIBED"){
+     state.liveChannel=channel;
+     await channel.track({user_id:currentUserId(),name:state.user.name,role:state.user.role});
+     appendChat({name:"System",text:"Realtime classroom connected.",system:true},false);
+     const {data:history}=await sb.from("app_live_messages").select("user_id,user_name,message,created_at").eq("room_id",room).order("created_at",{ascending:true}).limit(100);
+     (history||[]).forEach(m=>appendChat({name:m.user_name,text:m.message},m.user_id===currentUserId()));
+     const {data:board}=await sb.from("app_whiteboard_events").select("user_id,event,created_at").eq("room_id",room).order("created_at",{ascending:true}).limit(5000);
+     (board||[]).forEach(x=>applyWhiteboardEvent(x.event));
+   } else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT") toast("Realtime classroom connection failed. Check Supabase Realtime settings.","err");
+ });
+}
+function appendChat(p,mine){
+ const box=$("chatMessages");if(!box)return;const d=document.createElement("div");d.className=`chat-msg ${mine?"mine":""}`;const name=p.system?"System":p.name||"User";d.innerHTML=`<b>${esc(name)}:</b> ${esc(p.text||"")}`;box.appendChild(d);box.scrollTop=box.scrollHeight;
+}
+async function sendChat(){
+ const input=$("chatInput"),text=input?.value.trim();if(!text)return;
+ const payload={name:state.user.name,text,created_at:new Date().toISOString()};appendChat(payload,true);input.value="";
+ if(state.liveChannel){const {error}=await state.liveChannel.send({type:"broadcast",event:"chat",payload});if(error)console.warn("Realtime broadcast:",error)}
+ const {error:dbErr}=await sb.from("app_live_messages").insert({room_id:state.liveRoomId,user_id:currentUserId(),user_name:state.user.name,message:text});
+ if(dbErr)console.warn("Chat persistence unavailable:",dbErr.message);
+}
+function handlePresence(){}
 async function startCamera(){
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    state.activeStream = stream;
-    $("localVideo").srcObject = stream;
-  } catch(e) { toast("Could not access camera: " + e.message); }
+ try{if(!navigator.mediaDevices?.getUserMedia)throw new Error("Camera access is not supported by this browser.");const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});await replaceLocalStream(stream);await announceStream()}
+ catch(e){toast("Could not access camera: "+e.message,"err")}
 }
-
 async function startScreenShare(){
-  try {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-    state.activeStream = stream;
-    $("localVideo").srcObject = stream;
-  } catch(e) { toast("Could not share screen: " + e.message); }
+ try{if(!navigator.mediaDevices?.getDisplayMedia)throw new Error("Screen sharing is not supported by this browser.");const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});stream.getVideoTracks()[0].onended=()=>stopStream();await replaceLocalStream(stream);await announceStream()}
+ catch(e){toast("Could not share screen: "+e.message,"err")}
 }
-
-function stopStream(){
-  if(state.activeStream) {
-    state.activeStream.getTracks().forEach(t => t.stop());
-    state.activeStream = null;
-    $("localVideo").srcObject = null;
-  }
+async function replaceLocalStream(stream){
+ if(state.activeStream)state.activeStream.getTracks().forEach(t=>t.stop());state.activeStream=stream;
+ const video=$("localVideo");if(video)video.srcObject=stream;
+ for(const pc of state.peerConnections.values()){const sender=pc.getSenders().find(s=>s.track?.kind==="video");const audio=pc.getSenders().find(s=>s.track?.kind==="audio");const vt=stream.getVideoTracks()[0],at=stream.getAudioTracks()[0];if(sender&&vt)await sender.replaceTrack(vt);if(audio&&at)await audio.replaceTrack(at)}
 }
-
-function closeLiveModal(){
-  stopStream();
-  closeModal();
+async function announceStream(){if(state.liveChannel)await state.liveChannel.send({type:"broadcast",event:"signal",payload:{kind:"stream-available",from:currentUserId()}})}
+function rtcConfig(){return {iceServers:[{urls:["stun:stun.l.google.com:19302"]}]}}
+function createPeerVideo(id,name){
+ const grid=$("videoGrid");if(!grid)return null;let wrap=document.getElementById("peer-"+CSS.escape(id));if(wrap)return wrap.querySelector("video");
+ wrap=document.createElement("div");wrap.className="peer-video";wrap.id=`peer-${id}`;const v=document.createElement("video");v.autoplay=true;v.playsInline=true;wrap.appendChild(v);const label=document.createElement("div");label.className="peer-label";label.textContent=name||"Participant";wrap.appendChild(label);grid.appendChild(wrap);return v;
 }
-
-function sendChat(){
-  const input = $("chatInput");
-  const val = input.value.trim();
-  if(!val) return;
-  const box = $("chatMessages");
-  box.innerHTML += `<div class="chat-msg"><b>${esc(state.user.name)}:</b> ${esc(val)}</div>`;
-  input.value = "";
-  box.scrollTop = box.scrollHeight;
+async function createPeer(id,initiator=false,name="Participant"){
+ if(id===currentUserId())return null;if(state.peerConnections.has(id))return state.peerConnections.get(id);
+ const pc=new RTCPeerConnection(rtcConfig());state.peerConnections.set(id,pc);
+ if(state.activeStream)state.activeStream.getTracks().forEach(t=>pc.addTrack(t,state.activeStream));
+ pc.onicecandidate=e=>{if(e.candidate&&state.liveChannel)state.liveChannel.send({type:"broadcast",event:"signal",payload:{kind:"ice",from:currentUserId(),to:id,candidate:e.candidate}})};
+ pc.ontrack=e=>{const v=createPeerVideo(id,name);if(v&&v.srcObject!==e.streams[0])v.srcObject=e.streams[0]};
+ pc.onconnectionstatechange=()=>{if(["failed","closed","disconnected"].includes(pc.connectionState)){pc.close();state.peerConnections.delete(id)}};
+ if(initiator){const offer=await pc.createOffer();await pc.setLocalDescription(offer);await state.liveChannel.send({type:"broadcast",event:"signal",payload:{kind:"offer",from:currentUserId(),to:id,description:pc.localDescription,name:state.user.name}})}
+ return pc;
 }
+async function handleWebRTCSignal(p){
+ if(!p||p.to!==currentUserId()&&p.kind!=="stream-available")return;
+ if(p.kind==="stream-available"){return}
+ const id=p.from;if(!id)return;
+ if(p.kind==="offer"){const pc=await createPeer(id,false,p.name);await pc.setRemoteDescription(p.description);const answer=await pc.createAnswer();await pc.setLocalDescription(answer);await state.liveChannel.send({type:"broadcast",event:"signal",payload:{kind:"answer",from:currentUserId(),to:id,description:pc.localDescription}})}
+ else if(p.kind==="answer"){const pc=state.peerConnections.get(id);if(pc)await pc.setRemoteDescription(p.description)}
+ else if(p.kind==="ice"){const pc=state.peerConnections.get(id);if(pc)try{await pc.addIceCandidate(p.candidate)}catch(e){console.warn(e)}}
+}
+function stopStream(){if(state.activeStream){state.activeStream.getTracks().forEach(t=>t.stop());state.activeStream=null}const v=$("localVideo");if(v)v.srcObject=null}
+async function stopLiveStudioResources(){
+ stopStream();for(const pc of state.peerConnections.values())pc.close();state.peerConnections.clear();
+ if(state.liveChannel){await sb.removeChannel(state.liveChannel);state.liveChannel=null}state.liveRoomId=null;
+}
+async function closeLiveModal(){await stopLiveStudioResources();closeModal()}
 
-let isDrawing = false, lastX = 0, lastY = 0;
+/* ---------- REAL-TIME WHITEBOARD ---------- */
 function initWhiteboard(){
-  const canvas = $("whiteboardCanvas");
-  if(!canvas) return;
-  const ctx = canvas.getContext("2d");
-  canvas.width = canvas.parentElement.clientWidth;
-  canvas.height = 380;
-
-  ctx.strokeStyle = "#0b1220";
-  ctx.lineWidth = 3;
-  ctx.lineCap = "round";
-
-  canvas.onmousedown = (e) => { isDrawing = true; [lastX, lastY] = [e.offsetX, e.offsetY]; };
-  canvas.onmousemove = (e) => {
-    if(!isDrawing) return;
-    ctx.strokeStyle = $("wbColor")?.value || "#0b1220";
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(e.offsetX, e.offsetY);
-    ctx.stroke();
-    [lastX, lastY] = [e.offsetX, e.offsetY];
-  };
-  canvas.onmouseup = () => isDrawing = false;
-  canvas.onmouseout = () => isDrawing = false;
+ const canvas=$("whiteboardCanvas");if(!canvas)return;const ctx=canvas.getContext("2d"),parent=canvas.parentElement;
+ const resize=()=>{const old=canvas.toDataURL();canvas.width=parent.clientWidth;canvas.height=380;const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,canvas.width,canvas.height);img.src=old};resize();
+ canvas.onpointerdown=e=>{isDrawing=true;canvas.setPointerCapture(e.pointerId);[lastX,lastY]=point(e,canvas)};
+ canvas.onpointermove=e=>{if(!isDrawing)return;const [x,y]=point(e,canvas),color=$("wbColor")?.value||"#0b1220";drawLine(ctx,lastX,lastY,x,y,color);broadcastWB({type:"line",x1:lastX,y1:lastY,x2:x,y2:y,color});[lastX,lastY]=[x,y]};
+ canvas.onpointerup=()=>isDrawing=false;canvas.onpointercancel=()=>isDrawing=false;
+ window.addEventListener("resize",resize,{once:true});
 }
-
-function clearWhiteboard(){
-  const canvas = $("whiteboardCanvas");
-  if(!canvas) return;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+function point(e,c){const r=c.getBoundingClientRect();return [(e.clientX-r.left)*(c.width/r.width),(e.clientY-r.top)*(c.height/r.height)]}
+function drawLine(ctx,x1,y1,x2,y2,color){ctx.strokeStyle=color;ctx.lineWidth=3;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+async function broadcastWB(payload){
+ if(state.liveChannel)await state.liveChannel.send({type:"broadcast",event:"wb",payload});
+ if(state.liveRoomId&&currentUserId()){const {error}=await sb.from("app_whiteboard_events").insert({room_id:state.liveRoomId,user_id:currentUserId(),event:payload});if(error)console.warn("Whiteboard persistence unavailable:",error.message)}
 }
+function applyWhiteboardEvent(p){const c=$("whiteboardCanvas");if(!c)return;const ctx=c.getContext("2d");if(p.type==="line")drawLine(ctx,p.x1,p.y1,p.x2,p.y2,p.color||"#0b1220");if(p.type==="clear")ctx.clearRect(0,0,c.width,c.height)}
+async function clearWhiteboard(){const c=$("whiteboardCanvas");if(!c)return;c.getContext("2d").clearRect(0,0,c.width,c.height);await broadcastWB({type:"clear"})}
 
-function openLessonModal(){
-  openModalContent(`
-    <h2>➕ Add Lesson Content</h2>
-    <form onsubmit="saveLesson(event)">
-      <label>Educational Level</label>
-      <select id="lessLevel" onchange="populateClassDropdown()">${state.levels.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("")}</select>
-      <label>Class</label>
-      <select id="lessClass"></select>
-      <label>Subject</label>
-      <select id="lessSubject"></select>
-      <label>Lesson Title</label>
-      <input id="lessTitle" required placeholder="e.g. Algebraic Equations">
-      <label>YouTube Video URL or Embed Link</label>
-      <input id="lessVideo" placeholder="https://www.youtube.com/watch?v=...">
-      <label>Access Type</label>
-      <select id="lessAccess"><option value="FREE">Free Content</option><option value="PAID">Paid Content</option></select>
-      
-      <label>Price (USD if Paid)</label>
-      <input id="lessPrice" type="number" step="0.01" value="0.00" placeholder="10.00">
-      
-      <label>Lesson Content / Notes (Markdown or HTML supported)</label>
-      <textarea id="lessContent" placeholder="Enter lesson details, notes, or instructions here..."></textarea>
-      
-      <div class="row" style="margin-top:18px;justify-content:flex-end">
-        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn primary">Save Lesson</button>
-      </div>
-    </form>
-  `);
-  populateClassDropdown();
-}
-
-function populateClassDropdown() {
-  const lvl = $("lessLevel").value;
-  const classSelect = $("lessClass");
-  const classes = state.classes[lvl] || [];
-  classSelect.innerHTML = classes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  populateSubjectDropdown();
-  classSelect.onchange = populateSubjectDropdown;
-}
-
-function populateSubjectDropdown() {
-  const lvl = $("lessLevel").value;
-  const cls = $("lessClass").value;
-  const subjectSelect = $("lessSubject");
-  const key = `${lvl}__${cls}`;
-  const subjects = state.subjects[key] || [];
-  subjectSelect.innerHTML = subjects.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
-}
-
-async function saveLesson(e) {
-  e.preventDefault();
-  const level = $("lessLevel").value;
-  const cls = $("lessClass").value;
-  const subject = $("lessSubject").value;
-  const title = $("lessTitle").value.trim();
-  const video = $("lessVideo").value.trim();
-  const accessType = $("lessAccess").value;
-  const price = $("lessPrice").value;
-  const content = $("lessContent").value.trim();
-
-  const newLesson = {
-    id: uid("les"),
-    level,
-    class: cls,
-    subject,
-    title,
-    video,
-    accessType,
-    price,
-    content
-  };
-
-  state.lessons.push(newLesson);
-  await sb.from('app_lessons').upsert(newLesson);
-  toast("Lesson added successfully!");
-  closeModal();
-  renderTree();
-  openLesson(newLesson.id);
-}
-  
+$("loginForm").onsubmit=login;$("signupForm").onsubmit=signup;$("resetForm").onsubmit=resetPassword;
 </script>
 </body>
 </html>
