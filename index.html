@@ -23,7 +23,7 @@ main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.ban
 .modal{position:fixed;inset:0;background:#0009;display:none;place-items:center;padding:18px;z-index:50}.modal.open{display:grid}.modal-box{width:min(720px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:20px}
 .list{display:grid;gap:8px}.item{padding:11px;border:1px solid var(--line);border-radius:9px;background:#0d1726;display:flex;justify-content:space-between;gap:10px;align-items:center}.muted{color:var(--muted)}.empty{padding:25px;text-align:center;color:var(--muted)}
 .status{font-size:11px;padding:4px 7px;border-radius:20px;background:#10b98122;color:#58e0b2}.offline{background:#f59e0b22;color:#ffc15c}
-@media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.sidebar{min-height:300px;max-height:42vh}.grid{grid-template-columns:1fr}.full{grid-column:auto}.content{padding:14px}}
+@media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.sidebar{min-height:300px;max-height:42vh}.grid{grid-grid-template-columns:1fr}.full{grid-column:auto}.content{padding:14px}}
 </style>
 </head>
 <body>
@@ -31,7 +31,7 @@ main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.ban
 <section id="auth" class="auth">
   <div class="auth-card">
     <h1 class="brand" id="brandTitle">Mboineki LMS</h1>
-    <p class="muted">Enterprise Learning platform with strict hierarchical management, secure password management, and instant sharing.</p>
+    <p class="muted">Enterprise Learning platform with full content management, editing, renaming, and hierarchical control.</p>
     <div id="loginView">
       <h2>Sign in</h2>
       <form id="loginForm">
@@ -49,7 +49,7 @@ main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.ban
         <label>Full name</label><input id="signupName" required>
         <label>Email</label><input id="signupEmail" type="email" required>
         <label>Password</label><input id="signupPassword" type="password" minlength="6" required>
-        <label>Account type</label><select id="signupRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option></select>
+        <label>Account type</label><select id="signupRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option><option value="ADMIN">Administrator</option></select>
         <button class="btn success" style="width:100%;margin-top:15px">Create account</button>
       </form>
       <p class="muted">Already registered? <span class="link" onclick="showAuth('login')">Sign in</span></p>
@@ -93,7 +93,7 @@ main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.ban
         </div>
       </div>
       <div id="adminTools" class="toolbar hidden">
-        <button class="btn purple" onclick="openManager()">⚙️ Manage Hierarchy (Levels ➔ Classes ➔ Subjects)</button>
+        <button class="btn purple" onclick="openManager()">⚙️ Manage Hierarchy & Rename</button>
         <button class="btn primary" onclick="openLessonModal()">+ Add Lesson Content</button>
       </div>
       <div id="lessonArea">
@@ -251,11 +251,12 @@ async function login(e){
       return toast("Login error: " + error.message);
     }
     if(data.user) {
+      const userRole = (data.user.email === "admin@mboineki.local") ? "ADMIN" : (data.user.user_metadata?.role || "STUDENT");
       state.user = { 
         id: data.user.id, 
         email: data.user.email, 
-        name: data.user.user_metadata?.name || "Cloud User", 
-        role: data.user.user_metadata?.role || "STUDENT" 
+        name: data.user.user_metadata?.name || (data.user.email === "admin@mboineki.local" ? "System Admin" : "Cloud User"), 
+        role: userRole 
       };
       sessionStorage.setItem(KEYS.session, JSON.stringify(state.user));
       bootUI();
@@ -434,8 +435,13 @@ function filterByLevel(level) {
   const classes = state.classes[level] || [];
   $("lessonArea").innerHTML = `
     <article class="card">
-      <h1>📂 ${esc(level)}</h1>
-      <p class="muted">Parent educational level containing classes and subjects.</p>
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h1>📂 ${esc(level)}</h1>
+          <p class="muted">Parent educational level containing classes and subjects.</p>
+        </div>
+        ${canEdit() ? `<div class="row"><button class="btn warn" onclick="renameLevelPrompt('${esc(level)}')">Rename Level</button><button class="btn danger" onclick="deleteLevelPrompt('${esc(level)}')">Delete Level</button></div>` : ""}
+      </div>
     </article>
     <div class="card">
       <h3>Classes under ${esc(level)}</h3>
@@ -452,8 +458,13 @@ function filterByClass(level, cls) {
   const subjects = state.subjects[`${level}__${cls}`] || [];
   $("lessonArea").innerHTML = `
     <article class="card">
-      <h1>🏫 ${esc(cls)}</h1>
-      <p class="muted">Parent class under ${esc(level)}.</p>
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h1>🏫 ${esc(cls)}</h1>
+          <p class="muted">Parent class under ${esc(level)}.</p>
+        </div>
+        ${canEdit() ? `<div class="row"><button class="btn warn" onclick="renameClassPrompt('${esc(level)}', '${esc(cls)}')">Rename Class</button><button class="btn danger" onclick="deleteClassPrompt('${esc(level)}', '${esc(cls)}')">Delete Class</button></div>` : ""}
+      </div>
     </article>
     <div class="card">
       <h3>Subjects under ${esc(cls)}</h3>
@@ -475,13 +486,16 @@ function filterBySubject(level, cls, sub) {
           <h1>📖 ${esc(sub)}</h1>
           <p class="muted">Parent subject for lessons and learning content under ${esc(cls)} (${esc(level)}).</p>
         </div>
-        ${canEdit() ? `<button class="btn success" onclick="openLessonForSubject('${esc(level)}', '${esc(cls)}', '${esc(sub)}')">+ Add Content</button>` : ""}
+        <div class="row">
+          ${canEdit() ? `<button class="btn warn" onclick="renameSubjectPrompt('${esc(level)}', '${esc(cls)}', '${esc(sub)}')">Rename Subject</button><button class="btn danger" onclick="deleteSubjectPrompt('${esc(level)}', '${esc(cls)}', '${esc(sub)}')">Delete Subject</button>` : ""}
+          ${canEdit() ? `<button class="btn success" onclick="openLessonForSubject('${esc(level)}', '${esc(cls)}', '${esc(sub)}')">+ Add Content</button>` : ""}
+        </div>
       </div>
     </article>
     <div class="card">
       <h3>Lessons & Content Added</h3>
       <div class="list">
-        ${lessons.map(l => `<div class="item"><div><strong>▶ ${esc(l.title)}</strong></div><button class="btn primary" onclick="openLesson('${l.id}')">Open Content</button></div>`).join("") || `<div class="empty">No lessons or content added under this subject yet.</div>`}
+        ${lessons.map(l => `<div class="item"><div><strong>▶ ${esc(l.title)}</strong></div><div class="row"><button class="btn warn" onclick="openEditLesson('${l.id}')">Edit</button><button class="btn primary" onclick="openLesson('${l.id}')">Open</button></div></div>`).join("") || `<div class="empty">No lessons or content added under this subject yet.</div>`}
       </div>
     </div>
   `;
@@ -495,7 +509,10 @@ function openLesson(id){
     <article class="card">
       <div class="row" style="justify-content:space-between">
         <h1>▶ ${esc(l.title)}</h1>
-        ${canEdit() ? `<button class="btn danger" onclick="deleteLesson('${l.id}')">Delete Content</button>` : ""}
+        <div class="row">
+          ${canEdit() ? `<button class="btn warn" onclick="openEditLesson('${l.id}')">Edit Content</button>` : ""}
+          ${canEdit() ? `<button class="btn danger" onclick="deleteLesson('${l.id}')">Delete Content</button>` : ""}
+        </div>
       </div>
       <p class="muted">Parent Subject: ${esc(l.subject)} | Class: ${esc(l.class)}</p>
     </article>
@@ -504,11 +521,11 @@ function openLesson(id){
   `;
 }
 
-/* --- HIERARCHY & LESSON MANAGEMENT MODALS --- */
+/* --- HIERARCHY, RENAME & DELETE MANAGEMENT --- */
 function openManager(){
   openModalContent(`
-    <h2>⚙️ Manage Curriculum Hierarchy</h2>
-    <p class="muted">Maintain strict parent-child relationships: Education Levels ➔ Classes ➔ Subjects ➔ Lessons/Contents.</p>
+    <h2>⚙️ Manage Curriculum Hierarchy & Renaming</h2>
+    <p class="muted">Maintain structured parent-child levels, classes, and subjects.</p>
     
     <div class="card" style="background:#09111e">
       <h3>1. Add Education Level</h3>
@@ -555,11 +572,7 @@ async function addLevel(e){
   e.preventDefault();
   const name = $("newLevelName").value.trim();
   if(!name || state.levels.includes(name)) return toast("Invalid or duplicate level name.");
-  
-  if(hasBackend) {
-    await sb.from('levels').insert([{ name }]);
-  }
-
+  if(hasBackend) await sb.from('levels').insert([{ name }]);
   state.levels.push(name);
   state.classes[name] = [];
   saveLocal();
@@ -574,11 +587,7 @@ async function addClass(e){
   if(!lvl || !name) return;
   if(!state.classes[lvl]) state.classes[lvl] = [];
   if(state.classes[lvl].includes(name)) return toast("Class already exists under this level.");
-
-  if(hasBackend) {
-    await sb.from('classes').insert([{ level: lvl, name }]);
-  }
-
+  if(hasBackend) await sb.from('classes').insert([{ level: lvl, name }]);
   state.classes[lvl].push(name);
   saveLocal();
   toast(`Class "${name}" added under "${lvl}"!`);
@@ -592,20 +601,129 @@ async function addSubject(e){
   if(!key || !name) return;
   if(!state.subjects[key]) state.subjects[key] = [];
   if(state.subjects[key].includes(name)) return toast("Subject already exists under this class.");
-
   const parts = key.split("__");
   const lvl = parts[0], cls = parts[1];
-
-  if(hasBackend) {
-    await sb.from('subjects').insert([{ level: lvl, class_name: cls, name }]);
-  }
-
+  if(hasBackend) await sb.from('subjects').insert([{ level: lvl, class_name: cls, name }]);
   state.subjects[key].push(name);
   saveLocal();
   toast(`Subject "${name}" added successfully!`);
   openManager();
 }
 
+/* --- RENAME FUNCTIONS --- */
+function renameLevelPrompt(oldName){
+  const newName = prompt("Rename Education Level:", oldName);
+  if(!newName || newName.trim() === oldName) return;
+  const clean = newName.trim();
+  if(state.levels.includes(clean)) return toast("Level name already exists.");
+  
+  state.levels = state.levels.map(l => l === oldName ? clean : l);
+  if(state.classes[oldName]) {
+    state.classes[clean] = state.classes[oldName];
+    delete state.classes[oldName];
+  }
+  Object.keys(state.subjects).forEach(k => {
+    if(k.startsWith(oldName + "__")) {
+      const newK = k.replace(oldName + "__", clean + "__");
+      state.subjects[newK] = state.subjects[k];
+      delete state.subjects[k];
+    }
+  });
+  state.lessons.forEach(l => { if(l.level === oldName) l.level = clean; });
+  saveLocal();
+  renderTree();
+  filterByLevel(clean);
+  toast("Level renamed successfully!");
+}
+
+function renameClassPrompt(level, oldClass){
+  const newClass = prompt("Rename Class:", oldClass);
+  if(!newClass || newClass.trim() === oldClass) return;
+  const clean = newClass.trim();
+  const list = state.classes[level] || [];
+  if(list.includes(clean)) return toast("Class already exists under this level.");
+
+  state.classes[level] = list.map(c => c === oldClass ? clean : c);
+  const oldKey = `${level}__${oldClass}`;
+  const newKey = `${level}__${clean}`;
+  if(state.subjects[oldKey]) {
+    state.subjects[newKey] = state.subjects[oldKey];
+    delete state.subjects[oldKey];
+  }
+  state.lessons.forEach(l => { if(l.level === level && l.class === oldClass) l.class = clean; });
+  saveLocal();
+  renderTree();
+  filterByClass(level, clean);
+  toast("Class renamed successfully!");
+}
+
+function renameSubjectPrompt(level, cls, oldSub){
+  const newSub = prompt("Rename Subject:", oldSub);
+  if(!newSub || newSub.trim() === oldSub) return;
+  const clean = newSub.trim();
+  const key = `${level}__${cls}`;
+  const list = state.subjects[key] || [];
+  if(list.includes(clean)) return toast("Subject already exists under this class.");
+
+  state.subjects[key] = list.map(s => s === oldSub ? clean : s);
+  state.lessons.forEach(l => { if(l.level === level && l.class === cls && l.subject === oldSub) l.subject = clean; });
+  saveLocal();
+  renderTree();
+  filterBySubject(level, cls, clean);
+  toast("Subject renamed successfully!");
+}
+
+/* --- DELETE HIERARCHY FUNCTIONS --- */
+async function deleteLevelPrompt(level){
+  if(!confirm(`Delete entire level "${level}" and all nested classes, subjects, and lessons?`)) return;
+  if(hasBackend) {
+    await sb.from('levels').delete().eq('name', level);
+    await sb.from('classes').delete().eq('level', level);
+    await sb.from('subjects').delete().eq('level', level);
+    await sb.from('lessons').delete().eq('level', level);
+  }
+  state.levels = state.levels.filter(l => l !== level);
+  delete state.classes[level];
+  Object.keys(state.subjects).forEach(k => { if(k.startsWith(level + "__")) delete state.subjects[k]; });
+  state.lessons = state.lessons.filter(l => l.level !== level);
+  saveLocal();
+  renderTree();
+  $("lessonArea").innerHTML = `<div class="card"><h2>Level Deleted</h2><p class="muted">Select another curriculum node.</p></div>`;
+  toast("Level deleted.");
+}
+
+async function deleteClassPrompt(level, cls){
+  if(!confirm(`Delete class "${cls}" and all its subjects and lessons?`)) return;
+  if(hasBackend) {
+    await sb.from('classes').delete().eq('level', level).eq('name', cls);
+    await sb.from('subjects').delete().eq('level', level).eq('class_name', cls);
+    await sb.from('lessons').delete().eq('level', level).eq('class_name', cls);
+  }
+  if(state.classes[level]) state.classes[level] = state.classes[level].filter(c => c !== cls);
+  delete state.subjects[`${level}__${cls}`];
+  state.lessons = state.lessons.filter(l => !(l.level === level && l.class === cls));
+  saveLocal();
+  renderTree();
+  filterByLevel(level);
+  toast("Class deleted.");
+}
+
+async function deleteSubjectPrompt(level, cls, sub){
+  if(!confirm(`Delete subject "${sub}" and all its lessons?`)) return;
+  if(hasBackend) {
+    await sb.from('subjects').delete().eq('level', level).eq('class_name', cls).eq('name', sub);
+    await sb.from('lessons').delete().eq('level', level).eq('class_name', cls).eq('subject', sub);
+  }
+  const key = `${level}__${cls}`;
+  if(state.subjects[key]) state.subjects[key] = state.subjects[key].filter(s => s !== sub);
+  state.lessons = state.lessons.filter(l => !(l.level === level && l.class === cls && l.subject === sub));
+  saveLocal();
+  renderTree();
+  filterByClass(level, cls);
+  toast("Subject deleted.");
+}
+
+/* --- LESSON CONTENT MANAGEMENT --- */
 function openLessonModal(){
   const allSubjOptions = Object.keys(state.subjects).flatMap(key => {
     const parts = key.split("__");
@@ -655,6 +773,45 @@ function openLessonForSubject(lvl, cls, sub){
   `);
 }
 
+function openEditLesson(id){
+  const l = state.lessons.find(x => x.id === id);
+  if(!l) return;
+  openModalContent(`
+    <h2>✏️ Edit Lesson Content</h2>
+    <form onsubmit="saveEditedLesson(event, '${l.id}')">
+      <label>Title</label>
+      <input id="editTitle" value="${esc(l.title)}" required>
+      <label>YouTube Video URL</label>
+      <input id="editVideo" value="${esc(l.video || '')}" placeholder="https://www.youtube.com/watch?v=...">
+      <label>Notes / Content</label>
+      <textarea id="editContent" required>${esc(l.content)}</textarea>
+      <div class="row" style="margin-top:15px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn primary">Save Changes</button>
+      </div>
+    </form>
+  `);
+}
+
+async function saveEditedLesson(e, id){
+  e.preventDefault();
+  const title = $("editTitle").value.trim();
+  const video = $("editVideo").value.trim();
+  const content = $("editContent").value.trim();
+
+  const l = state.lessons.find(x => x.id === id);
+  if(l) {
+    l.title = title; l.video = video; l.content = content;
+    if(hasBackend) {
+      await sb.from('lessons').update({ title, video, content }).eq('id', id);
+    }
+    saveLocal();
+    closeModal();
+    openLesson(id);
+    toast("Lesson content updated successfully!");
+  }
+}
+
 async function saveNewLesson(e){
   e.preventDefault();
   const preset = $("presetPath");
@@ -691,11 +848,9 @@ async function saveNewLesson(e){
 
 async function deleteLesson(id){
   if(!confirm("Are you sure you want to delete this content?")) return;
-  
   if(hasBackend) {
     await sb.from('lessons').delete().eq('id', id);
   }
-
   state.lessons = state.lessons.filter(l => l.id !== id);
   saveLocal();
   renderTree();
