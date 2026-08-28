@@ -18,7 +18,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0
 .primary{background:var(--primary)}.success{background:var(--success)}.warn{background:var(--warn);color:#111}.danger{background:var(--danger)}.purple{background:var(--purple)}
 .link{color:#60a5fa;cursor:pointer}.row{display:flex;gap:8px;align-items:center}.wrap{flex-wrap:wrap}
 .app{height:100vh;display:grid;grid-template-columns:290px 1fr}.sidebar{border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-width:0}.topbrand{padding:18px;border-bottom:1px solid var(--line)}.profile{padding:12px 15px;border-bottom:1px solid var(--line)}
-.tree{overflow:auto;padding:10px;flex:1}.tree-item{padding:9px 10px;border-radius:8px;margin:3px 0;display:flex;justify-content:space-between;gap:8px;cursor:pointer}.tree-item:hover{background:var(--surface2)}.tree-level{color:#7fb0ff;background:#0b1424}.tree-class{margin-left:10px;color:#9ec5ff}.tree-subject{margin-left:20px;color:#9de2c7}.tree-lesson{margin-left:30px;font-size:13px}.active{background:var(--primary)!important;color:white!important}
+.tree{overflow:auto;padding:10px;flex:1}
+.tree details{margin:4px 0}
+.tree summary{list-style:none;cursor:pointer;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;color:#7fb0ff;background:#0b1424;user-select:none}
+.tree summary::-webkit-details-marker{display:none}
+.tree summary:hover{background:var(--surface2)}
+.tree .sub-folder{margin-left:12px;border-left:1px dashed var(--line);padding-left:6px}
+.tree .sub-folder summary{color:#9ec5ff;background:#0d1726}
+.tree .sub-subject summary{color:#9de2c7;background:#09121a}
+.tree-lesson{padding:7px 10px;margin:3px 0 3px 18px;border-radius:6px;display:flex;justify-content:space-between;gap:6px;cursor:pointer;color:var(--text);font-size:13px}
+.tree-lesson:hover{background:var(--surface2)}
+.tree-lesson.active{background:var(--primary)!important;color:white!important}
 main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.banner,.card,.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
 .video{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:12px;overflow:hidden;margin:15px 0}.video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
 .meeting{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#0a1523;border:1px solid var(--line);padding:14px;border-radius:11px;margin:12px 0}
@@ -37,7 +47,7 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
 <section id="auth" class="auth">
   <div class="auth-card">
     <h1 class="brand" id="brandTitle">Mboineki LMS</h1>
-    <p class="muted">Enterprise Learning platform with advanced live video, screen sharing, editable structure, whiteboard, and instant sharing.</p>
+    <p class="muted">Enterprise Learning platform with advanced live video, screen sharing, collapsible curriculum folders, whiteboard, and instant sharing.</p>
     <div id="loginView">
       <h2>Sign in</h2>
       <form id="loginForm">
@@ -113,7 +123,7 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
         <button class="btn" onclick="openModal('configModal')">System Settings</button>
       </div>
       <div id="lessonArea">
-        <div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any curriculum tree item on the left to start learning, join live broadcasts, share your screen, or use the whiteboard.</p></div>
+        <div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any curriculum folder on the left to start learning, join live broadcasts, share your screen, or use the whiteboard.</p></div>
       </div>
     </div>
   </main>
@@ -136,8 +146,7 @@ const KEYS = {
 const state = {
   user: null, levels: [], classes: {}, subjects: {}, lessons: [], courses: [],
   teachers: [], notifications: [], config: { phone: "", email: "", portalTitle: "Mboineki LMS" }, active: null,
-  pendingImage: null, channel: null, localStream: null,
-  expandedFolders: { levels: {}, classes: {}, subjects: {} }
+  pendingImage: null, channel: null, localStream: null
 };
 
 const $ = id => document.getElementById(id);
@@ -365,73 +374,65 @@ function renderTree(){
   // Courses Section
   if(state.courses.length > 0){
     const cdHead = document.createElement("div");
-    cdHead.innerHTML = `<div class="tree-item tree-level"><strong>🎓 Modular Courses</strong></div>`;
+    cdHead.innerHTML = `<div style="padding:6px 10px;font-weight:bold;color:var(--muted)">🎓 Modular Courses</div>`;
     t.appendChild(cdHead);
     state.courses.forEach(c => {
       const ci = document.createElement("div");
-      ci.className = `tree-item tree-class ${state.active === c.id ? "active" : ""}`;
+      ci.className = `tree-lesson ${state.active === c.id ? "active" : ""}`;
+      ci.style.marginLeft = "10px";
       ci.innerHTML = `<span>📚 ${esc(c.title)}</span><small>Course</small>`;
       ci.onclick = () => openCourseView(c.id);
       t.appendChild(ci);
     });
   }
 
-  // Clickable Folders Hierarchy
+  // Native Collapsible Folders (<details> & <summary>)
   state.levels.forEach(level => {
-    const isLevelOpen = !!state.expandedFolders.levels[level];
-    const ld = document.createElement("div");
-    ld.className = `tree-item tree-level ${isLevelOpen ? "open" : ""}`;
-    ld.innerHTML = `<span>${isLevelOpen ? '📂 🔽' : '📁 ▶'} <strong>${esc(level)}</strong></span><small>Level</small>`;
-    ld.onclick = () => {
-      state.expandedFolders.levels[level] = !isLevelOpen;
-      renderTree();
-    };
-    t.appendChild(ld);
+    const levelDetails = document.createElement("details");
+    levelDetails.innerHTML = `
+      <summary><span>📁 <strong>${esc(level)}</strong></span><small>Level</small></summary>
+      <div style="padding-left:8px"></div>
+    `;
+    const levelContainer = levelDetails.querySelector("div");
 
-    if(isLevelOpen){
-      (state.classes[level] || []).forEach(cls => {
-        const classKey = `${level}__${cls}`;
-        const isClassOpen = !!state.expandedFolders.classes[classKey];
-        const cd = document.createElement("div");
-        cd.className = `tree-item tree-class ${isClassOpen ? "open" : ""}`;
-        cd.innerHTML = `<span>${isClassOpen ? '📂 🔽' : '📁 ▶'} <strong>🏫 ${esc(cls)}</strong></span><small>Class</small>`;
-        cd.onclick = (e) => {
-          e.stopPropagation();
-          state.expandedFolders.classes[classKey] = !isClassOpen;
-          renderTree();
-        };
-        t.appendChild(cd);
+    (state.classes[level] || []).forEach(cls => {
+      const classDetails = document.createElement("details");
+      classDetails.className = "sub-folder";
+      classDetails.innerHTML = `
+        <summary><span>📁 🏫 ${esc(cls)}</span><small>Class</small></summary>
+        <div style="padding-left:8px"></div>
+      `;
+      const classContainer = classDetails.querySelector("div");
 
-        if(isClassOpen){
-          (state.subjects[`${level}_${cls}`] || []).forEach(sub => {
-            const subKey = `${level}__${cls}__${sub}`;
-            const isSubOpen = !!state.expandedFolders.subjects[subKey];
-            const sd = document.createElement("div");
-            sd.className = `tree-item tree-subject ${isSubOpen ? "open" : ""}`;
-            sd.innerHTML = `<span>${isSubOpen ? '📂 🔽' : '📁 ▶'} <strong>📖 ${esc(sub)}</strong></span><small>Subject</small>`;
-            sd.onclick = (e) => {
+      (state.subjects[`${level}_${cls}`] || []).forEach(sub => {
+        const subDetails = document.createElement("details");
+        subDetails.className = "sub-folder sub-subject";
+        subDetails.innerHTML = `
+          <summary><span>📖 ${esc(sub)}</span><small>Subject</small></summary>
+          <div style="padding-left:10px"></div>
+        `;
+        const subContainer = subDetails.querySelector("div");
+
+        state.lessons
+          .filter(l => l.level === level && l.class === cls && l.subject === sub)
+          .forEach(l => {
+            const lessonItem = document.createElement("div");
+            lessonItem.className = `tree-lesson ${state.active === l.id ? "active" : ""}`;
+            lessonItem.innerHTML = `<span>▶ ${esc(l.title)}</span><small>${l.access === "PAID" ? "🔒" : "FREE"}</small>`;
+            lessonItem.onclick = (e) => {
               e.stopPropagation();
-              state.expandedFolders.subjects[subKey] = !isSubOpen;
-              renderTree();
+              openLesson(l.id);
             };
-            t.appendChild(sd);
-
-            if(isSubOpen){
-              state.lessons.filter(l => l.level === level && l.class === cls && l.subject === sub).forEach(l => {
-                const x = document.createElement("div");
-                x.className = `tree-item tree-lesson ${state.active === l.id ? "active" : ""}`;
-                x.innerHTML = `<span>▶ ${esc(l.title)}</span><small>${l.access === "PAID" ? "🔒" : "FREE"}</small>`;
-                x.onclick = (e) => {
-                  e.stopPropagation();
-                  openLesson(l.id);
-                };
-                t.appendChild(x);
-              });
-            }
+            subContainer.appendChild(lessonItem);
           });
-        }
+
+        classContainer.appendChild(subDetails);
       });
-    }
+
+      levelContainer.appendChild(classDetails);
+    });
+
+    t.appendChild(levelDetails);
   });
 }
 
@@ -540,10 +541,9 @@ function openLesson(id){
   initChat(l.id);
 }
 
-// Additional modular modal & admin helper functions
 function openModal(id){ $("modal").classList.add("open"); }
 function openModalContent(html){ $("modalBox").innerHTML = html; $("modal").classList.add("open"); }
-function closeModal(){ $("modal").classList.remove("open"); state.pendingImage = null; }
+function closeModal(){ $("modal").classList.remove("open"); }
 
 function updateNotifBadge(){
   if($("notifBadge")) $("notifBadge").textContent = state.notifications.length;
@@ -657,7 +657,6 @@ function saveNewLesson(){
   
   if(!title) return toast("Lesson title is required.");
   
-  // Register class and subject under level if missing
   if(!state.classes[level]) state.classes[level] = [];
   if(!state.classes[level].includes(cls)) state.classes[level].push(cls);
   const subKey = `${level}_${cls}`;
@@ -700,7 +699,7 @@ function deleteLesson(id){
   state.lessons = state.lessons.filter(x => x.id !== id);
   saveLocal();
   renderTree();
-  $("lessonArea.innerHTML = `<div class='card'><h2>Lesson deleted</h2></div>`";
+  $("lessonArea").innerHTML = `<div class='card'><h2>Lesson deleted</h2></div>`;
   if(state.lessons.length) openLesson(state.lessons[0].id);
 }
 
@@ -721,7 +720,6 @@ function deleteLocalUser(id){
   openUserManager();
 }
 
-// Live Camera & Screen Share placeholders
 async function toggleLiveCamera(){
   const container = $("liveStreamContainer");
   const video = $("liveVideoFeed");
@@ -758,7 +756,6 @@ async function toggleScreenShare(){
   }
 }
 
-// Whiteboard & Notepad placeholders
 function initWhiteboard(){
   const canvas = $("whiteboardCanvas");
   if(!canvas) return;
@@ -816,7 +813,6 @@ function sendMsg(lessonId){
   list.scrollTop = list.scrollHeight;
 }
 
-// Initialize App on Load
 window.onload = init;
 </script>
 </body>
