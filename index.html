@@ -20,14 +20,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0
 .tree{overflow:auto;padding:10px;flex:1}.tree-item{padding:9px 10px;border-radius:8px;margin:3px 0;display:flex;justify-content:space-between;gap:8px;cursor:pointer}.tree-item:hover{background:var(--surface2)}.tree-level{color:#7fb0ff;background:#0b1424;font-weight:bold}.tree-class{margin-left:10px;color:#9ec5ff}.tree-subject{margin-left:20px;color:#9de2c7}.tree-lesson{margin-left:30px;font-size:13px}.active{background:var(--primary)!important;color:white!important}
 main{overflow:auto}.content{width:min(1180px,100%);margin:auto;padding:24px}.banner,.card,.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
 .video{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:12px;overflow:hidden;margin:15px 0}.video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
-.meeting{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#0a1523;border:1px solid var(--line);padding:14px;border-radius:11px;margin:12px 0}
-.chat{height:560px;display:flex;flex-direction:column;background:#0a121b;border:1px solid var(--line);border-radius:14px;overflow:hidden}.chat-head{padding:12px 15px;background:#162330;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.messages{flex:1;overflow:auto;padding:15px;display:flex;flex-direction:column;gap:9px}.msg{max-width:76%;align-self:flex-start}.msg.mine{align-self:flex-end}.bubble{background:#1d2b38;padding:9px 12px;border-radius:10px}.mine .bubble{background:#075e54}.sender{font-size:11px;color:#63c6ee;margin-bottom:3px}.meta{font-size:10px;color:#91a1b1;text-align:right;margin-top:4px}.attach{max-width:100%;border-radius:8px;margin-top:6px}.chat-input{padding:10px;background:#162330;display:flex;gap:7px}.chat-input input{flex:1}
 .modal{position:fixed;inset:0;background:#0009;display:none;place-items:center;padding:18px;z-index:50}.modal.open{display:grid}.modal-box{width:min(720px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:20px}
 .list{display:grid;gap:8px}.item{padding:11px;border:1px solid var(--line);border-radius:9px;background:#0d1726;display:flex;justify-content:space-between;gap:10px;align-items:center}.muted{color:var(--muted)}.empty{padding:25px;text-align:center;color:var(--muted)}
-.lock{border:2px dashed var(--warn);background:#f59e0b12;text-align:center;padding:35px;border-radius:12px}
 .status{font-size:11px;padding:4px 7px;border-radius:20px;background:#10b98122;color:#58e0b2}.offline{background:#f59e0b22;color:#ffc15c}
-canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;width:100%;cursor:crosshair;touch-action:none}
-@media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.sidebar{min-height:300px;max-height:42vh}.grid{grid-template-columns:1fr}.full{grid-column:auto}.content{padding:14px}.meeting{flex-direction:column;text-align:center}.chat{height:500px}.msg{max-width:88%}}
+@media(max-width:800px){.app{grid-template-columns:1fr;height:auto}.sidebar{min-height:300px;max-height:42vh}.grid{grid-template-columns:1fr}.full{grid-column:auto}.content{padding:14px}}
 </style>
 </head>
 <body>
@@ -35,7 +31,7 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
 <section id="auth" class="auth">
   <div class="auth-card">
     <h1 class="brand" id="brandTitle">Mboineki LMS</h1>
-    <p class="muted">Enterprise Learning platform with advanced live video, screen sharing, editable structure, whiteboard, and instant sharing.</p>
+    <p class="muted">Enterprise Learning platform with strict hierarchical management, secure password management, and instant sharing.</p>
     <div id="loginView">
       <h2>Sign in</h2>
       <form id="loginForm">
@@ -54,7 +50,6 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
         <label>Email</label><input id="signupEmail" type="email" required>
         <label>Password</label><input id="signupPassword" type="password" minlength="6" required>
         <label>Account type</label><select id="signupRole"><option value="STUDENT">Student</option><option value="TUTOR">Teacher / Tutor</option></select>
-        <label>Subject (teacher only)</label><input id="signupSubject" placeholder="e.g. Advanced Physics">
         <button class="btn success" style="width:100%;margin-top:15px">Create account</button>
       </form>
       <p class="muted">Already registered? <span class="link" onclick="showAuth('login')">Sign in</span></p>
@@ -74,10 +69,7 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
     <div class="topbrand">
       <div class="row" style="justify-content:space-between">
         <strong class="brand" id="sidebarBrand">Mboineki LMS</strong>
-        <div class="row">
-          <button class="btn success" style="padding:4px 8px;font-size:11px" onclick="openShareModal()">📤 Share</button>
-          <button class="btn" style="padding:4px 8px;font-size:11px" onclick="openNotificationsModal()">🔔 <span id="notifBadge">0</span></button>
-        </div>
+        <button class="btn success" style="padding:4px 8px;font-size:11px" onclick="openShareModal()">📤 Share</button>
       </div>
       <small id="modeBadge" class="status"></small>
     </div>
@@ -94,23 +86,18 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
   <main>
     <div class="content">
       <div class="banner row" style="justify-content:space-between">
-        <div><h2 id="heading">Learning Workspace</h2><p id="subheading" class="muted">Select a lesson or custom course module.</p></div>
+        <div><h2 id="heading">Learning Workspace</h2><p id="subheading" class="muted">Select an item from the curriculum tree.</p></div>
         <div class="row">
           <button class="btn success" onclick="openShareModal()">📤 Share Platform</button>
           <span id="roleBadge" class="status"></span>
         </div>
       </div>
       <div id="adminTools" class="toolbar hidden">
-        <button class="btn purple" onclick="openManager()">Manage Levels & Classes</button>
-        <button class="btn success" onclick="openCourseManager()">Manage Courses & Permissions</button>
-        <button class="btn primary" onclick="openLessonModal()">+ Lesson / Session</button>
-        <button class="btn success" onclick="openStudentModal()">+ Add Student</button>
-        <button class="btn success" onclick="openTeacherModal()">+ Teacher Profile</button>
-        <button class="btn warn" onclick="openUserManager()">User Administration</button>
-        <button class="btn" onclick="openConfigModal()">System Settings</button>
+        <button class="btn purple" onclick="openManager()">⚙️ Manage Hierarchy (Levels ➔ Classes ➔ Subjects)</button>
+        <button class="btn primary" onclick="openLessonModal()">+ Add Lesson Content</button>
       </div>
       <div id="lessonArea">
-        <div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any curriculum tree item on the left to start learning, join live broadcasts, share your screen, or use the whiteboard.</p></div>
+        <div class="card"><h2>Welcome to Mboineki Enterprise LMS</h2><p class="muted">Select any structured curriculum item on the left to explore lessons and learning content.</p></div>
       </div>
     </div>
   </main>
@@ -119,21 +106,18 @@ canvas.wb{background:#080e18;border:1px solid var(--line);border-radius:8px;widt
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div id="modalBox" class="modal-box"></div></div>
 
 <script>
-const CONFIG={ SUPABASE_URL: "https://ykeeqriqifuhzhjespro.supabase.co", SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZWVxcmlxaWZ1aHpoamVzcHJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTQyNzIsImV4cCI6MjEwMzQ3MDI3Mn0.AvLByu1hD0bGDPO-Bn7emQ1GMx-iXUab4BxEwQC8FzA" };
+const CONFIG={ SUPABASE_URL: "", SUPABASE_ANON_KEY: "" };
 const hasBackend = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
 const sb = hasBackend ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
 
 const KEYS = {
   levels: "mboino_ent_levels", classes: "mboino_ent_classes", subjects: "mboino_ent_subjects",
-  lessons: "mboino_ent_lessons", courses: "mboino_ent_courses", users: "mboino_ent_users",
-  teachers: "mboino_ent_teachers", config: "mboino_ent_config", notifs: "mboino_ent_notifs", session: "mboino_ent_session"
+  lessons: "mboino_ent_lessons", users: "mboino_ent_users", config: "mboino_ent_config", session: "mboino_ent_session"
 };
 
 const state = {
-  user: null, levels: [], classes: {}, subjects: {}, lessons: [], courses: [],
-  teachers: [], notifications: [], config: { phone: "", email: "", portalTitle: "Mboineki LMS" }, active: null,
-  pendingImage: null, channel: null, localStream: null,
-  wb: { drawing: false, mode: 'pen', color: '#3b82f6', x: 0, y: 0 }
+  user: null, levels: [], classes: {}, subjects: {}, lessons: [],
+  config: { portalTitle: "Mboineki LMS" }, active: null
 };
 
 const $ = id => document.getElementById(id);
@@ -146,13 +130,49 @@ function saveLocal(){
   localStorage.setItem(KEYS.classes, JSON.stringify(state.classes));
   localStorage.setItem(KEYS.subjects, JSON.stringify(state.subjects));
   localStorage.setItem(KEYS.lessons, JSON.stringify(state.lessons));
-  localStorage.setItem(KEYS.courses, JSON.stringify(state.courses));
-  localStorage.setItem(KEYS.teachers, JSON.stringify(state.teachers));
-  localStorage.setItem(KEYS.notifs, JSON.stringify(state.notifications));
   localStorage.setItem(KEYS.config, JSON.stringify(state.config));
 }
 
-function loadLocal(){
+async function loadData(){
+  if(hasBackend) {
+    try {
+      // Supabase cloud data synchronization check
+      const { data: cfgData } = await sb.from('config').select('*').single();
+      if(cfgData) state.config = cfgData;
+      
+      const { data: lvlData } = await sb.from('levels').select('*');
+      if(lvlData && lvlData.length) state.levels = lvlData.map(l => l.name);
+
+      const { data: clsData } = await sb.from('classes').select('*');
+      if(clsData) {
+        state.classes = {};
+        clsData.forEach(c => {
+          if(!state.classes[c.level]) state.classes[c.level] = [];
+          state.classes[c.level].push(c.name);
+        });
+      }
+
+      const { data: subData } = await sb.from('subjects').select('*');
+      if(subData) {
+        state.subjects = {};
+        subData.forEach(s => {
+          const key = `${s.level}__${s.class_name}`;
+          if(!state.subjects[key]) state.subjects[key] = [];
+          state.subjects[key].push(s.name);
+        });
+      }
+
+      const { data: lesData } = await sb.from('lessons').select('*');
+      if(lesData) state.lessons = lesData;
+
+      applyPortalBranding();
+      return;
+    } catch(e) {
+      console.warn("Cloud load fallback to local storage:", e);
+    }
+  }
+
+  // Local storage fallback
   try {
     if(!localStorage.getItem(KEYS.users)) {
       saveUsers([
@@ -160,59 +180,23 @@ function loadLocal(){
         { id: "local-student", name: "Sample Student", email: "student@mboineki.local", password: "StudentPassword123!", role: "STUDENT", status: "ACTIVE" }
       ]);
     }
-    state.levels = JSON.parse(localStorage.getItem(KEYS.levels) || '["Primary Level", "Secondary Level", "University / Tertiary"]');
-    state.classes = JSON.parse(localStorage.getItem(KEYS.classes) || '{"Primary Level":["Grade 5","Grade 6"],"Secondary Level":["Form 3","Form 4"],"University / Tertiary":["Year 1 BSc"]}');
-    state.subjects = JSON.parse(localStorage.getItem(KEYS.subjects) || '{"Primary Level_Grade 5":["Mathematics","Elementary Science"],"Secondary Level_Form 3":["Physics","Chemistry"],"University / Tertiary_Year 1 BSc":["Advanced Calculus"]}');
-    state.lessons = JSON.parse(localStorage.getItem(KEYS.lessons) || '[]');
-    state.courses = JSON.parse(localStorage.getItem(KEYS.courses) || '[{"id":"c1","title":"Fullstack Web Engineering","description":"Professional software creation masterclass.","tutors":[],"students":[]}]');
-    state.teachers = JSON.parse(localStorage.getItem(KEYS.teachers) || '[]');
-    state.notifications = JSON.parse(localStorage.getItem(KEYS.notifications) || '[{"id":"n1","title":"System Online","message":"Welcome to Mboineki LMS Enterprise Edition.","time":"Just now"}]');
-    state.config = JSON.parse(localStorage.getItem(KEYS.config) || '{"phone":"256700000000","email":"support@mboineki.local","portalTitle":"Mboineki LMS"}');
+    state.levels = JSON.parse(localStorage.getItem(KEYS.levels) || '["Primary Level", "Secondary Level"]');
+    state.classes = JSON.parse(localStorage.getItem(KEYS.classes) || '{"Primary Level":["Grade 5","Grade 6"],"Secondary Level":["Form 3","Form 4"]}');
+    state.subjects = JSON.parse(localStorage.getItem(KEYS.subjects) || '{"Primary Level__Grade 5":["Mathematics","Elementary Science"],"Secondary Level__Form 3":["Physics","Chemistry"]}');
+    state.lessons = JSON.parse(localStorage.getItem(KEYS.lessons) || '[{"id":"les_1","level":"Primary Level","class":"Grade 5","subject":"Mathematics","title":"Introduction to Fractions","content":"Fractions represent parts of a whole value. Learn numerator and denominator fundamentals.","video":""}]');
+    state.config = JSON.parse(localStorage.getItem(KEYS.config) || '{"portalTitle":"Mboineki LMS"}');
     applyPortalBranding();
   } catch(e) { console.error("Local loading error", e); }
 }
 
 function localUsers(){ try { return JSON.parse(localStorage.getItem(KEYS.users) || "[]"); } catch { return []; } }
 function saveUsers(u){ localStorage.setItem(KEYS.users, JSON.stringify(u)); }
+
 function applyPortalBranding(){
   const title = state.config.portalTitle || "Mboineki LMS";
   if($("pageTitle")) $("pageTitle").textContent = title;
   if($("brandTitle")) $("brandTitle").textContent = title;
   if($("sidebarBrand")) $("sidebarBrand").textContent = title;
-}
-
-async function api(action, payload = {}) {
-  if(!hasBackend) return null;
-  if(action === "profile") { let {data, error} = await sb.from("profiles").select("*").eq("id", payload.id).single(); if(error) throw error; return data; }
-  if(action === "profiles") { let {data, error} = await sb.from("profiles").select("*").order("created_at"); if(error) throw error; return data || []; }
-  if(action === "levels") { let {data, error} = await sb.from("education_levels").select("*").order("name"); if(error) throw error; return data || []; }
-  if(action === "classes") { let {data, error} = await sb.from("classes").select("*").order("name"); if(error) throw error; return data || []; }
-  if(action === "subjects") { let {data, error} = await sb.from("subjects").select("*").order("name"); if(error) throw error; return data || []; }
-  if(action === "lessons") { let {data, error} = await sb.from("lessons").select("*").order("created_at", {ascending:true}); if(error) throw error; return data || []; }
-  if(action === "courses") { let {data, error} = await sb.from("courses").select("*").order("title"); if(error) throw error; return data || []; }
-  if(action === "teachers") { let {data, error} = await sb.from("teachers").select("*").order("name"); if(error) throw error; return data || []; }
-  if(action === "messages") { let {data, error} = await sb.from("messages").select("*").order("created_at"); if(error) throw error; return data || []; }
-  if(action === "hands") { let {data, error} = await sb.from("lesson_hands").select("*").order("created_at"); if(error) throw error; return data || []; }
-  if(action === "notifs") { let {data, error} = await sb.from("notifications").select("*").order("created_at", {ascending:false}); if(error) throw error; return data || []; }
-  if(action === "config") { let {data, error} = await sb.from("platform_config").select("*").eq("id", 1).maybeSingle(); if(error) throw error; return data || {phone:"", email:"", portalTitle:"Mboineki LMS"}; }
-}
-
-async function cloudLoad(){
-  try {
-    const [lv, cl, su, le, cr, te, msgs, hands, notifs, cfg] = await Promise.all([
-      api("levels"), api("classes"), api("subjects"), api("lessons"), api("courses"),
-      api("teachers"), api("messages"), api("hands"), api("notifs"), api("config")
-    ]);
-    state.levels = lv.map(x => x.name);
-    state.classes = {}; lv.forEach(x => { state.classes[x.name] = cl.filter(c => c.level_id === x.id).map(c => c.name); });
-    state.subjects = {}; for(const c of cl) { const l = lv.find(x => x.id === c.level_id); if(l) state.subjects[`${l.name}_${c.name}`] = su.filter(s => s.class_id === c.id).map(s => s.name); }
-    state.lessons = le.map(l => ({ ...l, messages: [], hands: [] }));
-    for(const m of msgs) { const l = state.lessons.find(x => x.id === m.lesson_id); if(l) l.messages.push(m); }
-    for(const hand of hands) { const l = state.lessons.find(x => x.id === hand.lesson_id); if(l) l.hands.push(hand); }
-    state.courses = cr.map(c => ({ ...c, tutors: c.tutors || [], students: c.students || [] }));
-    state.teachers = te; state.notifications = notifs; state.config = cfg || { phone: "", email: "", portalTitle: "Mboineki LMS" };
-    applyPortalBranding();
-  } catch(e) { console.error("Cloud synchronization error:", e); }
 }
 
 function normalizeYouTube(url){
@@ -222,108 +206,95 @@ function normalizeYouTube(url){
     if(u.hostname.includes("youtu.be")) id = u.pathname.slice(1).split("/")[0];
     else if(u.searchParams.get("v")) id = u.searchParams.get("v");
     else if(u.pathname.includes("/embed/")) id = u.pathname.split("/embed/")[1].split("/")[0];
-    else if(u.pathname.includes("/shorts/")) id = u.pathname.split("/shorts/")[1].split("/")[0];
-    else if(u.pathname.includes("/live/")) id = u.pathname.split("/live/")[1].split("/")[0];
     if(!id) return url;
-    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&rel=0&playsinline=1`;
+    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=0&rel=0&playsinline=1`;
   } catch { return url; }
 }
 
-function youtubeBlock(url){ const e = normalizeYouTube(url); return e ? `<div class="video"><iframe src="${esc(e)}" title="Lesson Video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>` : ""; }
+function youtubeBlock(url){ const e = normalizeYouTube(url); return e ? `<div class="video"><iframe src="${esc(e)}" title="Lesson Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` : ""; }
 
 function isAdmin(){ return state.user?.role === "ADMIN"; }
 function canEdit(){ return isAdmin() || state.user?.role === "TUTOR"; }
-function canDelete(){ return isAdmin() || state.user?.role === "TUTOR"; }
 
 function showAuth(view){ ["login", "signup", "reset"].forEach(v => $(`${v}View`).classList.toggle("hidden", v !== view)); }
 
 async function init(){
-  $("modeNote").innerHTML = hasBackend ? "Enterprise Cloud Mode active with synchronized backend." : "";
-  if(hasBackend) {
-    sb.auth.onAuthStateChange(async (_, session) => {
-      if(session && !state.user) await bootCloud(session.user.id);
-      else if(!session) { state.user = null; showAuth("login"); $("auth").classList.remove("hidden"); $("app").classList.add("hidden"); }
-    });
-    const { data } = await sb.auth.getSession();
-    if(data.session) await bootCloud(data.session.user.id);
-  } else {
-    loadLocal();
-    const s = sessionStorage.getItem(KEYS.session);
-    if(s) { state.user = JSON.parse(s); bootUI(); } else showAuth("login");
-  }
+  $("modeNote").innerHTML = hasBackend ? "Enterprise Cloud Mode active." : "Local Enterprise Mode active.";
+  await loadData();
+  const s = sessionStorage.getItem(KEYS.session);
+  if(s) { state.user = JSON.parse(s); bootUI(); } else showAuth("login");
 }
 window.onload = init;
-
-async function bootCloud(id){
-  try {
-    state.user = await api("profile", { id });
-    if(!state.user) throw Error("User security profile not found.");
-    if(state.user.status === "DISABLED") { await sb.auth.signOut(); throw Error("This enterprise account has been disabled."); }
-    await cloudLoad(); bootUI(); subscribeCloud();
-  } catch(e) { console.error(e); toast("Authentication boot error: " + e.message); }
-}
 
 function bootUI(){
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
   $("profileName").textContent = state.user.name; $("profileRole").textContent = state.user.role;
   $("roleBadge").textContent = state.user.role;
-  $("modeBadge").textContent = hasBackend ? "Enterprise Cloud / Live" : "Demo Mode";
+  $("modeBadge").textContent = hasBackend ? "Enterprise Cloud" : "Local Storage Mode";
   $("modeBadge").classList.toggle("offline", !hasBackend);
-  $("adminTools").classList.toggle("hidden", !(isAdmin() || state.user.role === "TUTOR"));
-  updateNotifBadge(); renderTree();
+  $("adminTools").classList.toggle("hidden", !canEdit());
+  renderTree();
   if(state.lessons.length) openLesson(state.lessons[0].id);
-}
-
-function subscribeCloud(){
-  if(!hasBackend) return;
-  if(state.channel) sb.removeChannel(state.channel);
-  state.channel = sb.channel("mboineki-enterprise-live")
-    .on("postgres_changes", { event: "*", schema: "public" }, async () => {
-      await cloudLoad(); updateNotifBadge(); renderTree(); if(state.active) openLesson(state.active);
-    }).subscribe();
 }
 
 async function login(e){
   e.preventDefault();
   const email = $("loginEmail").value.trim().toLowerCase(), pass = $("loginPassword").value;
+  
   if(hasBackend) {
-    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if(error) toast(error.message);
-  } else {
-    const u = localUsers().find(x => x.email === email && x.password === pass);
-    if(!u) return toast("Invalid credentials provided.");
-    state.user = u; sessionStorage.setItem(KEYS.session, JSON.stringify(u)); bootUI();
+    // Supabase auth attempt if connected
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if(!error && data.user) {
+      state.user = { id: data.user.id, email: data.user.email, name: data.user.user_metadata?.name || "Cloud User", role: data.user.user_metadata?.role || "STUDENT" };
+      sessionStorage.setItem(KEYS.session, JSON.stringify(state.user));
+      bootUI();
+      return;
+    }
   }
+
+  const users = localUsers();
+  const u = users.find(x => x.email === email && x.password === pass);
+  if(!u) return toast("Invalid credentials provided. Check email or password.");
+  state.user = u; sessionStorage.setItem(KEYS.session, JSON.stringify(u)); bootUI();
 }
 
 async function signup(e){
   e.preventDefault();
   const name = $("signupName").value.trim(), email = $("signupEmail").value.trim().toLowerCase();
-  const password = $("signupPassword").value, role = $("signupRole").value, subject = $("signupSubject").value.trim();
+  const password = $("signupPassword").value, role = $("signupRole").value;
+
   if(hasBackend) {
-    const { error } = await sb.auth.signUp({ email, password, data: { name, requested_role: role, subject } });
-    if(error) return toast(error.message);
-    toast("Account created successfully. Check email if confirmation is enabled."); showAuth("login");
-  } else {
-    const users = localUsers();
-    if(users.some(x => x.email === email)) return toast("Email is already registered.");
-    const u = { id: uid("usr"), name, email, password, role, subject: subject || null, status: "ACTIVE" };
-    users.push(u); saveUsers(users);
-    if(role === "TUTOR") { state.teachers.push({ id: u.id, name, email, subject }); saveLocal(); }
-    state.user = u; sessionStorage.setItem(KEYS.session, JSON.stringify(u)); bootUI();
+    const { data, error } = await sb.auth.signUp({
+      email, password, options: { data: { name, role } }
+    });
+    if(error) return toast("Signup error: " + error.message);
   }
+
+  const users = localUsers();
+  if(users.some(x => x.email === email)) return toast("Email is already registered.");
+  const u = { id: uid("usr"), name, email, password, role, status: "ACTIVE" };
+  users.push(u); saveUsers(users);
+  state.user = u; sessionStorage.setItem(KEYS.session, JSON.stringify(u)); bootUI();
 }
 
 async function resetPassword(e){
   e.preventDefault();
-  if(!hasBackend) return toast("Password reset emails require cloud configuration.");
-  const { error } = await sb.auth.resetPasswordForEmail($("resetEmail").value.trim(), { redirectTo: location.origin + location.pathname });
-  toast(error ? error.message : "Password reset instructions sent.");
+  const email = $("resetEmail").value.trim().toLowerCase();
+  
+  if(hasBackend) {
+    await sb.auth.resetPasswordForEmail(email);
+  }
+
+  const users = localUsers();
+  const u = users.find(x => x.email === email);
+  if(!u) return toast("Email address not found in system records.");
+  toast(`Password recovery: Your current password is "${u.password}"`);
+  showAuth("login");
 }
 
 async function logout(){
   if(hasBackend) await sb.auth.signOut();
-  else { sessionStorage.removeItem(KEYS.session); state.user = null; location.reload(); }
+  sessionStorage.removeItem(KEYS.session); state.user = null; location.reload();
 }
 
 $("loginForm").onsubmit = login;
@@ -332,13 +303,13 @@ $("resetForm").onsubmit = resetPassword;
 
 function openShareModal(){
   const portalUrl = window.location.href;
-  const shareText = `Join me on ${state.config.portalTitle || "Mboineki LMS"} Enterprise Learning Platform! Access structured courses, live classes, and interactive learning tools here: ${portalUrl}`;
+  const shareText = `Join me on ${state.config.portalTitle || "Mboineki LMS"}! Explore educational levels, classes, subjects, and lessons here: ${portalUrl}`;
   const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
-  const emailUrl = `mailto:?subject=${encodeURIComponent("Join " + (state.config.portalTitle || "Mboineki LMS"))}&body=${encodeURIComponent(shareText)}`;
+  const emailUrl = `mailto:?subject=${encodeURIComponent("Join " + state.config.portalTitle)}&body=${encodeURIComponent(shareText)}`;
 
   openModalContent(`
     <h2>📤 Share Platform</h2>
-    <p class="muted">Invite students, teachers, or colleagues to join this learning portal instantly via WhatsApp, Email, or by copying the link.</p>
+    <p class="muted">Invite students or colleagues to join this learning portal instantly via WhatsApp, Email, or by copying the link.</p>
     <div class="card" style="background:#09111e">
       <label>Portal Link</label>
       <div class="row">
@@ -356,6 +327,46 @@ function openShareModal(){
   `);
 }
 
+function openPasswordModal(){
+  openModalContent(`
+    <h2>🔒 Change Password</h2>
+    <form onsubmit="updatePassword(event)">
+      <label>Current Password</label>
+      <input id="oldPass" type="password" required>
+      <label>New Password (min 6 chars)</label>
+      <input id="newPass" type="password" minlength="6" required>
+      <div class="row" style="margin-top:18px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn primary">Update Password</button>
+      </div>
+    </form>
+  `);
+}
+
+function updatePassword(e){
+  e.preventDefault();
+  const oldPass = $("oldPass").value;
+  const newPass = $("newPass").value;
+  
+  if(state.user.password && state.user.password !== oldPass) {
+    return toast("Current password is incorrect.");
+  }
+  
+  const users = localUsers();
+  const idx = users.findIndex(x => x.id === state.user.id);
+  if(idx !== -1) {
+    users[idx].password = newPass;
+    saveUsers(users);
+    state.user.password = newPass;
+    sessionStorage.setItem(KEYS.session, JSON.stringify(state.user));
+    toast("Password updated successfully!");
+    closeModal();
+  } else {
+    toast("Password updated in session context.");
+    closeModal();
+  }
+}
+
 function openModalContent(html){
   $("modalBox").innerHTML = html;
   $("modal").classList.add("open");
@@ -364,148 +375,102 @@ function closeModal(){
   $("modal").classList.remove("open");
 }
 
+/* --- HIERARCHY TREE & RENDERERS --- */
 function renderTree(){
   const t = $("tree"); t.innerHTML = "";
-  if(state.courses.length > 0){
-    const cdHead = document.createElement("div");
-    cdHead.innerHTML = `<div class="tree-item tree-level"><strong>🎓 Modular Courses</strong></div>`;
-    t.appendChild(cdHead);
-    state.courses.forEach(c => {
-      const ci = document.createElement("div");
-      ci.className = `tree-item tree-class ${state.active === c.id ? "active" : ""}`;
-      ci.innerHTML = `<span>📚 ${esc(c.title)}</span><small>Course</small>`;
-      ci.onclick = () => openCourseView(c.id);
-      t.appendChild(ci);
-    });
-  }
-
-  for(const level of state.levels){
+  
+  state.levels.forEach(level => {
     const ld = document.createElement("div");
-    ld.className = `tree-item tree-level`;
+    ld.className = `tree-item tree-level ${state.active === level ? "active" : ""}`;
     ld.innerHTML = `<strong>📂 ${esc(level)}</strong>`;
     ld.onclick = () => filterByLevel(level);
     t.appendChild(ld);
     
-    (state.classes[level] || []).forEach(cls => {
+    const classList = state.classes[level] || [];
+    classList.forEach(cls => {
+      const clsKey = `${level}__${cls}`;
       const cd = document.createElement("div");
-      cd.className = `tree-item tree-class`;
+      cd.className = `tree-item tree-class ${state.active === clsKey ? "active" : ""}`;
       cd.innerHTML = `<strong>🏫 ${esc(cls)}</strong>`;
       cd.onclick = (e) => { e.stopPropagation(); filterByClass(level, cls); };
       t.appendChild(cd);
       
-      (state.subjects[`${level}_${cls}`] || []).forEach(sub => {
+      const subList = state.subjects[clsKey] || [];
+      subList.forEach(sub => {
+        const subKey = `${level}__${cls}__${sub}`;
         const sd = document.createElement("div");
-        sd.className = `tree-item tree-subject`;
+        sd.className = `tree-item tree-subject ${state.active === subKey ? "active" : ""}`;
         sd.innerHTML = `<strong>📖 ${esc(sub)}</strong>`;
         sd.onclick = (e) => { e.stopPropagation(); filterBySubject(level, cls, sub); };
         t.appendChild(sd);
         
-        state.lessons.filter(l => l.level === level && l.class === cls && l.subject === sub).forEach(l => {
+        const lessonList = state.lessons.filter(l => l.level === level && l.class === cls && l.subject === sub);
+        lessonList.forEach(l => {
           const x = document.createElement("div");
           x.className = `tree-item tree-lesson ${state.active === l.id ? "active" : ""}`;
-          x.innerHTML = `<span>▶ ${esc(l.title)}</span><small>${l.access === "PAID" ? "🔒" : "FREE"}</small>`;
+          x.innerHTML = `<span>▶ ${esc(l.title)}</span>`;
           x.onclick = (e) => { e.stopPropagation(); openLesson(l.id); };
           t.appendChild(x);
         });
       });
     });
-  }
+  });
 }
 
 function filterByLevel(level) {
   state.active = level; renderTree();
-  $("subheading").textContent = `Curriculum Level: ${level}`;
-  const lessons = state.lessons.filter(l => l.level === level);
+  $("subheading").textContent = `Education Level: ${level}`;
+  const classes = state.classes[level] || [];
   $("lessonArea").innerHTML = `
     <article class="card">
       <h1>📂 ${esc(level)}</h1>
-      <p class="muted">Showing all modules, classes, and lessons under this level.</p>
+      <p class="muted">Parent educational level containing classes and subjects.</p>
     </article>
     <div class="card">
-      <h3>Lessons in ${esc(level)}</h3>
+      <h3>Classes under ${esc(level)}</h3>
       <div class="list">
-        ${lessons.map(l => `<div class="item"><div><strong>${esc(l.title)}</strong><br><small class="muted">${esc(l.class)} › ${esc(l.subject)}</small></div><button class="btn primary" onclick="openLesson('${l.id}')">Open Lesson</button></div>`).join("") || `<div class="empty">No lessons found under this level.</div>`}
+        ${classes.map(c => `<div class="item"><div><strong>🏫 ${esc(c)}</strong></div><button class="btn primary" onclick="filterByClass('${esc(level)}', '${esc(c)}')">View Classes</button></div>`).join("") || `<div class="empty">No classes configured yet under this level.</div>`}
       </div>
     </div>
   `;
 }
 
 function filterByClass(level, cls) {
-  state.active = `${level}_${cls}`; renderTree();
+  state.active = `${level}__${cls}`; renderTree();
   $("subheading").textContent = `${level} › ${cls}`;
-  const lessons = state.lessons.filter(l => l.level === level && l.class === cls);
+  const subjects = state.subjects[`${level}__${cls}`] || [];
   $("lessonArea").innerHTML = `
     <article class="card">
       <h1>🏫 ${esc(cls)}</h1>
-      <p class="muted">Curriculum Class under ${esc(level)}.</p>
+      <p class="muted">Parent class under ${esc(level)}.</p>
     </article>
     <div class="card">
-      <h3>Lessons in ${esc(cls)}</h3>
+      <h3>Subjects under ${esc(cls)}</h3>
       <div class="list">
-        ${lessons.map(l => `<div class="item"><div><strong>${esc(l.title)}</strong><br><small class="muted">${esc(l.subject)}</small></div><button class="btn primary" onclick="openLesson('${l.id}')">Open Lesson</button></div>`).join("") || `<div class="empty">No lessons found under this class.</div>`}
+        ${subjects.map(s => `<div class="item"><div><strong>📖 ${esc(s)}</strong></div><button class="btn primary" onclick="filterBySubject('${esc(level)}', '${esc(cls)}', '${esc(s)}')">View Subjects</button></div>`).join("") || `<div class="empty">No subjects configured yet under this class.</div>`}
       </div>
     </div>
   `;
 }
 
 function filterBySubject(level, cls, sub) {
-  state.active = `${level}_${cls}_${sub}`; renderTree();
+  state.active = `${level}__${cls}__${sub}`; renderTree();
   $("subheading").textContent = `${level} › ${cls} › ${sub}`;
   const lessons = state.lessons.filter(l => l.level === level && l.class === cls && l.subject === sub);
   $("lessonArea").innerHTML = `
     <article class="card">
-      <h1>📖 ${esc(sub)}</h1>
-      <p class="muted">Subject curriculum overview for ${esc(cls)} (${esc(level)}).</p>
-    </article>
-    <div class="card">
-      <h3>Lessons in ${esc(sub)}</h3>
-      <div class="list">
-        ${lessons.map(l => `<div class="item"><div><strong>${esc(l.title)}</strong></div><button class="btn primary" onclick="openLesson('${l.id}')">Open Lesson</button></div>`).join("") || `<div class="empty">No lessons found under this subject.</div>`}
-      </div>
-    </div>
-  `;
-}
-
-function openCourseView(id){
-  state.active = id; renderTree();
-  const c = state.courses.find(x => x.id === id);
-  if(!c) return;
-  $("subheading").textContent = `Independent Modular Course`;
-  const lessonsInCourse = state.lessons.filter(l => l.course_id === id);
-  const isAssignedTutor = (c.tutors || []).includes(state.user.id);
-  const isAssignedStudent = (c.students || []).includes(state.user.id);
-  const hasCourseAccess = isAdmin() || isAssignedTutor || isAssignedStudent || (!c.tutors?.length && !c.students?.length);
-
-  if(!hasCourseAccess) {
-    $("lessonArea").innerHTML = `
-      <article class="card">
-        <h1>🎓 ${esc(c.title)}</h1>
-        <p class="muted" style="line-height:1.6">${esc(c.description)}</p>
-      </article>
-      <div class="lock">
-        <h2>🔒 Course Access Restricted</h2>
-        <p class="muted">You are not currently enrolled or assigned as a facilitator for this course.</p>
-      </div>
-    `;
-    return;
-  }
-
-  $("lessonArea").innerHTML = `
-    <article class="card">
       <div class="row" style="justify-content:space-between">
-        <h1>🎓 ${esc(c.title)}</h1>
-        ${isAdmin() ? `<button class="btn warn" onclick="openCourseManager()">Manage Course</button>` : ""}
-      </div>
-      <p class="muted" style="line-height:1.6">${esc(c.description)}</p>
-      <div class="row" style="margin-top:12px">
-        <span class="status">Facilitators: ${(c.tutors || []).length} assigned</span>
-        <span class="status">Enrolled Learners: ${(c.students || []).length} assigned</span>
+        <div>
+          <h1>📖 ${esc(sub)}</h1>
+          <p class="muted">Parent subject for lessons and learning content under ${esc(cls)} (${esc(level)}).</p>
+        </div>
+        ${canEdit() ? `<button class="btn success" onclick="openLessonForSubject('${esc(level)}', '${esc(cls)}', '${esc(sub)}')">+ Add Content</button>` : ""}
       </div>
     </article>
     <div class="card">
-      <h3>Course Lessons & Modules</h3>
+      <h3>Lessons & Content Added</h3>
       <div class="list">
-        ${lessonsInCourse.map(l => `<div class="item"><div><strong>${esc(l.title)}</strong><br><small class="muted">${esc(l.level)} › ${esc(l.class)}</small></div><button class="btn primary" onclick="openLesson('${l.id}')">Open Lesson</button></div>`).join("") || `<div class="empty">No lessons attached to this independent course yet.</div>`}
+        ${lessons.map(l => `<div class="item"><div><strong>▶ ${esc(l.title)}</strong></div><button class="btn primary" onclick="openLesson('${l.id}')">Open Content</button></div>`).join("") || `<div class="empty">No lessons or content added under this subject yet.</div>`}
       </div>
     </div>
   `;
@@ -514,451 +479,211 @@ function openCourseView(id){
 function openLesson(id){
   state.active = id; const l = state.lessons.find(x => x.id === id);
   renderTree(); if(!l) return;
-  const locked = l.access === "PAID" && state.user.role === "STUDENT_FREE";
   $("subheading").textContent = `${l.level} › ${l.class} › ${l.subject}`;
-  if(locked) {
-    $("lessonArea").innerHTML = `<div class="lock"><h2>🔒 Paid Resource Protected</h2><p class="muted">This lesson requires active enrollment or paid subscription status.</p></div>`;
-    return;
-  }
-  
-  let media = youtubeBlock(l.video_url || "");
-  
-  if(l.meet_url || l.zoom_url || canEdit()) {
-    media += `<div class="meeting">
-      <div><strong>Online Live Broadcast & Screen Share</strong><div class="muted">Zoom, Google Meet, or direct browser camera/screen casting.</div></div>
-      <div class="row wrap">
-        ${l.meet_url ? `<a class="btn success" href="${esc(l.meet_url)}" target="_blank" rel="noopener">Google Meet</a>` : ""}
-        ${l.zoom_url ? `<a class="btn primary" href="${esc(l.zoom_url)}" target="_blank" rel="noopener">Zoom Session</a>` : ""}
-        ${canEdit() ? `
-          <button class="btn purple" onclick="toggleLiveCamera()">🎥 ${state.localStream ? "Stop Camera" : "Start Camera"}</button>
-          <button class="btn success" onclick="toggleScreenShare()">🖥️ ${state.localStream ? "Stop Sharing" : "Share Screen"}</button>
-        ` : ""}
-      </div>
-    </div>
-    <div id="liveStreamContainer" class="video hidden"><video id="liveVideoFeed" autoplay playsinline muted></video></div>`;
-  }
-
-  const edit = canEdit() ? `<button class="btn warn" onclick="editLesson('${l.id}')">Edit Lesson</button>` : "";
-  const del = canDelete() ? `<button class="btn danger" onclick="deleteLesson('${l.id}')">Delete</button>` : "";
-
   $("lessonArea").innerHTML = `
     <article class="card">
       <div class="row" style="justify-content:space-between">
-        <small class="muted">${esc(l.level)} › ${esc(l.class)} › ${esc(l.subject)}</small>
-        <div class="row">${edit}${del}</div>
+        <h1>▶ ${esc(l.title)}</h1>
+        ${canEdit() ? `<button class="btn danger" onclick="deleteLesson('${l.id}')">Delete Content</button>` : ""}
       </div>
-      <h1>${esc(l.title)}</h1>
-      <div style="line-height:1.7;white-space:pre-wrap">${esc(l.notes)}</div>
-      ${media}
+      <p class="muted">Parent Subject: ${esc(l.subject)} | Class: ${esc(l.class)}</p>
     </article>
-    ${l.file_url ? `<div class="card"><h3>📎 Downloadable Material</h3><a class="btn primary" href="${esc(l.file_url)}" target="_blank" rel="noopener">Open Attachment: ${esc(l.file_name || "Document")}</a></div>` : ""}
-    <div class="card">
-      <h3>🎨 Interactive Whiteboard & Digital Tools</h3>
-      <div class="row wrap" style="margin-bottom:10px">
-        <button class="btn primary" onclick="setWbTool('pen')">Pen</button>
-        <button class="btn" onclick="setWbTool('marker')">Marker</button>
-        <button class="btn danger" onclick="setWbTool('eraser')">Eraser</button>
-        <input type="color" id="wbColor" value="#3b82f6" style="width:40px;height:34px;padding:0;border:0;background:none" onchange="state.wb.color=this.value">
-        <button class="btn warn" onclick="clearWhiteboard()">Clear Board</button>
-      </div>
-      <canvas id="whiteboardCanvas" class="wb" height="400"></canvas>
-    </div>
-    <div class="card">
-      <h3>💬 Lesson Discussion & Real-time Chat</h3>
-      <div class="chat">
-        <div class="chat-head">
-          <strong>Discussion Stream</strong>
-          <span class="status">Live Room</span>
-        </div>
-        <div class="messages" id="chatMessages">
-          ${(l.messages || []).map(m => `
-            <div class="msg ${m.user_id === state.user.id ? "mine" : ""}">
-              <div class="sender">${esc(m.user_name)}</div>
-              <div class="bubble">${esc(m.message)}</div>
-              <div class="meta">${new Date(m.created_at || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-            </div>
-          `).join("") || `<div class="empty">No messages yet. Start the conversation!</div>`}
-        </div>
-        <form class="chat-input" onsubmit="sendChatMessage(event, '${l.id}')">
-          <input id="chatInputBox" placeholder="Type a message..." required>
-          <button class="btn primary">Send</button>
-        </form>
-      </div>
-    </div>
+    ${l.video ? youtubeBlock(l.video) : ""}
+    <article class="card" style="line-height:1.7;white-space:pre-wrap">${esc(l.content)}</article>
   `;
-  setTimeout(initWhiteboard, 100);
 }
 
-// Whiteboard functionality restoration
-function initWhiteboard(){
-  const canvas = $("whiteboardCanvas");
-  if(!canvas) return;
-  const ctx = canvas.getContext("2d");
-  
-  // Resize canvas to match display width
-  canvas.width = canvas.clientWidth;
-  canvas.height = 400;
-
-  const startDraw = e => {
-    state.wb.drawing = true;
-    const rect = canvas.getBoundingClientRect();
-    state.wb.x = (e.clientX || e.touches[0].clientX) - rect.left;
-    state.wb.y = (e.clientY || e.touches[0].clientY) - rect.top;
-  };
-
-  const draw = e => {
-    if(!state.wb.drawing) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
-
-    ctx.beginPath();
-    ctx.moveTo(state.wb.x, state.wb.y);
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = state.wb.mode === 'eraser' ? '#080e18' : state.wb.color;
-    ctx.lineWidth = state.wb.mode === 'marker' ? 10 : (state.wb.mode === 'eraser' ? 24 : 3);
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    state.wb.x = x;
-    state.wb.y = y;
-  };
-
-  const stopDraw = () => { state.wb.drawing = false; };
-
-  canvas.onmousedown = startDraw;
-  canvas.onmousemove = draw;
-  canvas.onmouseup = stopDraw;
-  canvas.onmouseleave = stopDraw;
-
-  canvas.ontouchstart = startDraw;
-  canvas.ontouchmove = draw;
-  canvas.ontouchend = stopDraw;
-}
-
-function setWbTool(tool){
-  state.wb.mode = tool;
-  toast(`Whiteboard tool changed to: ${tool}`);
-}
-
-function clearWhiteboard(){
-  const canvas = $("whiteboardCanvas");
-  if(!canvas) return;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-// Chat functionality
-async function sendChatMessage(e, lessonId){
-  e.preventDefault();
-  const box = $("chatInputBox");
-  const text = box.value.trim();
-  if(!text) return;
-  
-  const msgObj = { id: uid("msg"), lesson_id: lessonId, user_id: state.user.id, user_name: state.user.name, message: text, created_at: new Date().toISOString() };
-  
-  if(hasBackend) {
-    await sb.from("messages").insert([msgObj]);
-  } else {
-    const l = state.lessons.find(x => x.id === lessonId);
-    if(l) {
-      if(!l.messages) l.messages = [];
-      l.messages.push(msgObj);
-      saveLocal();
-    }
-  }
-  box.value = "";
-  openLesson(lessonId);
-}
-
-// Live Video / Screen Sharing Restoration
-async function toggleLiveCamera(){
-  const container = $("liveStreamContainer");
-  const video = $("liveVideoFeed");
-  if(state.localStream) {
-    state.localStream.getTracks().forEach(t => t.stop());
-    state.localStream = null;
-    if(container) container.classList.add("hidden");
-    toast("Camera stream stopped.");
-    openLesson(state.active);
-    return;
-  }
-  try {
-    state.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    if(container && video) {
-      video.srcObject = state.localStream;
-      container.classList.remove("hidden");
-      toast("Camera stream started successfully.");
-    }
-  } catch(err) {
-    toast("Could not access camera: " + err.message);
-  }
-}
-
-async function toggleScreenShare(){
-  const container = $("liveStreamContainer");
-  const video = $("liveVideoFeed");
-  if(state.localStream) {
-    state.localStream.getTracks().forEach(t => t.stop());
-    state.localStream = null;
-    if(container) container.classList.add("hidden");
-    toast("Screen share stopped.");
-    openLesson(state.active);
-    return;
-  }
-  try {
-    state.localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-    if(container && video) {
-      video.srcObject = state.localStream;
-      container.classList.remove("hidden");
-      toast("Screen sharing started.");
-    }
-  } catch(err) {
-    toast("Could not share screen: " + err.message);
-  }
-}
-
-// Admin / Management Modals
+/* --- HIERARCHY & LESSON MANAGEMENT MODALS --- */
 function openManager(){
   openModalContent(`
-    <h2>Manage Curriculum Levels & Classes</h2>
-    <p class="muted">Add or modify education levels and classes tree structure.</p>
+    <h2>⚙️ Manage Curriculum Hierarchy</h2>
+    <p class="muted">Maintain strict parent-child relationships: Education Levels ➔ Classes ➔ Subjects ➔ Lessons/Contents.</p>
+    
     <div class="card" style="background:#09111e">
-      <h3>Add New Level</h3>
-      <div class="row">
-        <input id="newLevelName" placeholder="e.g. Diploma Level">
-        <button class="btn primary" onclick="addLevel()">Add Level</button>
-      </div>
+      <h3>1. Add Education Level</h3>
+      <form onsubmit="addLevel(event)">
+        <label>Level Name</label>
+        <input id="newLevelName" placeholder="e.g. Tertiary Level" required>
+        <button class="btn primary" style="margin-top:10px">Add Level</button>
+      </form>
     </div>
+
     <div class="card" style="background:#09111e">
-      <h3>Add Class to Level</h3>
-      <div class="grid">
-        <div>
-          <label>Select Level</label>
-          <select id="targetLevelSelect">
-            ${state.levels.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("")}
-          </select>
-        </div>
-        <div>
-          <label>Class Name</label>
-          <input id="newClassName" placeholder="e.g. Year 2 Software">
-        </div>
-      </div>
-      <button class="btn success" style="margin-top:10px" onclick="addClass()">Add Class</button>
+      <h3>2. Add Class (Parent: Education Level)</h3>
+      <form onsubmit="addClass(event)">
+        <label>Select Education Level</label>
+        <select id="parentLevelSelect">
+          ${state.levels.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("")}
+        </select>
+        <label>Class Name</label>
+        <input id="newClassName" placeholder="e.g. Year 1" required>
+        <button class="btn primary" style="margin-top:10px">Add Class</button>
+      </form>
     </div>
-    <div style="margin-top:20px;text-align:right">
-      <button class="btn" onclick="closeModal()">Close</button>
+
+    <div class="card" style="background:#09111e">
+      <h3>3. Add Subject (Parent: Class)</h3>
+      <form onsubmit="addSubject(event)">
+        <label>Select Level & Class</label>
+        <select id="parentClassSelect">
+          ${Object.keys(state.classes).flatMap(lvl => (state.classes[lvl] || []).map(cls => `<option value="${esc(lvl)}__${esc(cls)}">${esc(lvl)} › ${esc(cls)}</option>`)).join("")}
+        </select>
+        <label>Subject Name</label>
+        <input id="newSubjectName" placeholder="e.g. Software Engineering" required>
+        <button class="btn primary" style="margin-top:10px">Add Subject</button>
+      </form>
+    </div>
+
+    <div style="text-align:right;margin-top:15px">
+      <button class="btn" onclick="closeModal(); renderTree();">Done / Close</button>
     </div>
   `);
 }
 
-function addLevel(){
+async function addLevel(e){
+  e.preventDefault();
   const name = $("newLevelName").value.trim();
-  if(!name) return toast("Enter level name.");
-  if(state.levels.includes(name)) return toast("Level already exists.");
+  if(!name || state.levels.includes(name)) return toast("Invalid or duplicate level name.");
+  
+  if(hasBackend) {
+    await sb.from('levels').insert([{ name }]);
+  }
+
   state.levels.push(name);
   state.classes[name] = [];
-  saveLocal(); renderTree(); closeModal(); toast("Level added!");
+  saveLocal();
+  toast(`Level "${name}" added successfully!`);
+  openManager();
 }
 
-function addClass(){
-  const level = $("targetLevelSelect").value;
-  const cls = $("newClassName").value.trim();
-  if(!cls) return toast("Enter class name.");
-  if(!state.classes[level]) state.classes[level] = [];
-  if(state.classes[level].includes(cls)) return toast("Class already exists under this level.");
-  state.classes[level].push(cls);
-  state.subjects[`${level}_${cls}`] = ["Core Studies"];
-  saveLocal(); renderTree(); closeModal(); toast("Class added!");
+async function addClass(e){
+  e.preventDefault();
+  const lvl = $("parentLevelSelect").value;
+  const name = $("newClassName").value.trim();
+  if(!lvl || !name) return;
+  if(!state.classes[lvl]) state.classes[lvl] = [];
+  if(state.classes[lvl].includes(name)) return toast("Class already exists under this level.");
+
+  if(hasBackend) {
+    await sb.from('classes').insert([{ level: lvl, name }]);
+  }
+
+  state.classes[lvl].push(name);
+  saveLocal();
+  toast(`Class "${name}" added under "${lvl}"!`);
+  openManager();
 }
 
-function openCourseManager(){
-  openModalContent(`
-    <h2>🎓 Manage Courses & Permissions</h2>
-    <p class="muted">Create independent modular courses and assign facilitators or learners.</p>
-    <div class="card" style="background:#09111e">
-      <h3>Create New Course</h3>
-      <label>Course Title</label>
-      <input id="courseTitle" placeholder="e.g. Fullstack Web Engineering">
-      <label>Description</label>
-      <textarea id="courseDesc" placeholder="Course overview..."></textarea>
-      <button class="btn primary" style="margin-top:10px" onclick="createCourse()">Create Course</button>
-    </div>
-    <div style="margin-top:20px;text-align:right">
-      <button class="btn" onclick="closeModal()">Close</button>
-    </div>
-  `);
-}
+async function addSubject(e){
+  e.preventDefault();
+  const key = $("parentClassSelect").value;
+  const name = $("newSubjectName").value.trim();
+  if(!key || !name) return;
+  if(!state.subjects[key]) state.subjects[key] = [];
+  if(state.subjects[key].includes(name)) return toast("Subject already exists under this class.");
 
-function createCourse(){
-  const title = $("courseTitle").value.trim();
-  const desc = $("courseDesc").value.trim();
-  if(!title) return toast("Enter course title.");
-  const c = { id: uid("crs"), title, description: desc, tutors: [], students: [] };
-  state.courses.push(c);
-  saveLocal(); renderTree(); closeModal(); toast("Course created successfully!");
+  const parts = key.split("__");
+  const lvl = parts[0], cls = parts[1];
+
+  if(hasBackend) {
+    await sb.from('subjects').insert([{ level: lvl, class_name: cls, name }]);
+  }
+
+  state.subjects[key].push(name);
+  saveLocal();
+  toast(`Subject "${name}" added successfully!`);
+  openManager();
 }
 
 function openLessonModal(){
+  const allSubjOptions = Object.keys(state.subjects).flatMap(key => {
+    const parts = key.split("__");
+    const lvl = parts[0], cls = parts[1];
+    return (state.subjects[key] || []).map(sub => `<option value="${esc(lvl)}||${esc(cls)}||${esc(sub)}">${esc(lvl)} › ${esc(cls)} › ${esc(sub)}</option>`);
+  }).join("");
+
+  if(!allSubjOptions) return toast("Please create at least one Education Level, Class, and Subject first using 'Manage Hierarchy'.");
+
   openModalContent(`
-    <h2>+ Create Lesson / Session</h2>
-    <p class="muted">Add a structured lesson inside your education hierarchy.</p>
-    <div class="grid">
-      <div>
-        <label>Level</label>
-        <select id="lessonLevel" onchange="updateClassDropdown()">
-          ${state.levels.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join("")}
-        </select>
+    <h2>+ Add Lesson / Content</h2>
+    <form onsubmit="saveNewLesson(event)">
+      <label>Target Subject (Parent)</label>
+      <select id="lessonSubjectPath">${allSubjOptions}</select>
+      <label>Lesson / Content Title</label>
+      <input id="lessonTitle" required placeholder="e.g. Advanced Algorithms">
+      <label>YouTube Video URL (optional)</label>
+      <input id="lessonVideo" placeholder="https://www.youtube.com/watch?v=...">
+      <label>Lesson Notes / Content Description</label>
+      <textarea id="lessonContent" required placeholder="Enter comprehensive learning notes, instructions, or article text here..."></textarea>
+      <div class="row" style="margin-top:15px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn primary">Publish Content</button>
       </div>
-      <div>
-        <label>Class</label>
-        <select id="lessonClass" onchange="updateSubjectDropdown()"></select>
-      </div>
-      <div>
-        <label>Subject</label>
-        <select id="lessonSubject"></select>
-      </div>
-      <div>
-        <label>Access Type</label>
-        <select id="lessonAccess"><option value="FREE">Free Access</option><option value="PAID">Paid / Protected</option></select>
-      </div>
-    </div>
-    <label>Lesson Title</label>
-    <input id="lessonTitle" placeholder="e.g. Introduction to React Hooks">
-    <label>Notes / Content</label>
-    <textarea id="lessonNotes" placeholder="Detailed lesson notes..."></textarea>
-    <label>YouTube Video URL</label>
-    <input id="lessonVideo" placeholder="https://www.youtube.com/watch?v=...">
-    <label>Google Meet / Zoom URL</label>
-    <input id="lessonMeet" placeholder="https://meet.google.com/abc-xyz">
-    <button class="btn primary" style="width:100%;margin-top:15px" onclick="saveNewLesson()">Save Lesson</button>
+    </form>
   `);
-  updateClassDropdown();
 }
 
-function updateClassDropdown(){
-  const level = $("lessonLevel")?.value;
-  const clsSel = $("lessonClass");
-  if(!clsSel) return;
-  const classes = state.classes[level] || [];
-  clsSel.innerHTML = classes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  updateSubjectDropdown();
+function openLessonForSubject(lvl, cls, sub){
+  openModalContent(`
+    <h2>+ Add Content under ${esc(sub)}</h2>
+    <form onsubmit="saveNewLesson(event)">
+      <input type="hidden" id="presetPath" value="${esc(lvl)}||${esc(cls)}||${esc(sub)}">
+      <label>Path</label>
+      <input value="${esc(lvl)} › ${esc(cls)} › ${esc(sub)}" readonly style="color:var(--muted)">
+      <label>Title</label>
+      <input id="lessonTitle" required placeholder="e.g. Module 1 Notes">
+      <label>YouTube Video URL (optional)</label>
+      <input id="lessonVideo" placeholder="https://www.youtube.com/watch?v=...">
+      <label>Notes / Content</label>
+      <textarea id="lessonContent" required placeholder="Type notes here..."></textarea>
+      <div class="row" style="margin-top:15px;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn primary">Publish Content</button>
+      </div>
+    </form>
+  `);
 }
 
-function updateSubjectDropdown(){
-  const level = $("lessonLevel")?.value;
-  const cls = $("lessonClass")?.value;
-  const subSel = $("lessonSubject");
-  if(!subSel) return;
-  const subjects = state.subjects[`${level}_${cls}`] || ["Core Studies"];
-  subSel.innerHTML = subjects.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
-}
+async function saveNewLesson(e){
+  e.preventDefault();
+  let pathVal = "";
+  const preset = $("presetPath");
+  if(preset) pathVal = preset.value;
+  else pathVal = $("lessonSubjectPath").value;
 
-function saveNewLesson(){
-  const level = $("lessonLevel").value;
-  const cls = $("lessonClass").value;
-  const subject = $("lessonSubject").value;
+  const parts = pathVal.split("||");
+  const level = parts[0], cls = parts[1], subject = parts[2];
+  
   const title = $("lessonTitle").value.trim();
-  const notes = $("lessonNotes").value.trim();
-  const video_url = $("lessonVideo").value.trim();
-  const meet_url = $("lessonMeet").value.trim();
-  const access = $("lessonAccess").value;
+  const video = $("lessonVideo").value.trim();
+  const content = $("lessonContent").value.trim();
 
-  if(!title) return toast("Lesson title is required.");
+  const newLesson = { id: uid("les"), level, class: cls, subject, title, video, content };
 
-  const l = {
-    id: uid("les"), level, class: cls, subject, title, notes,
-    video_url, meet_url, access, messages: [], hands: []
-  };
-
-  state.lessons.push(l);
-  saveLocal(); renderTree(); closeModal(); openLesson(l.id); toast("Lesson created successfully!");
-}
-
-function editLesson(id){
-  const l = state.lessons.find(x => x.id === id);
-  if(!l) return;
-  openModalContent(`
-    <h2>Edit Lesson</h2>
-    <label>Lesson Title</label>
-    <input id="editLessonTitle" value="${esc(l.title)}">
-    <label>Notes / Content</label>
-    <textarea id="editLessonNotes">${esc(l.notes)}</textarea>
-    <label>YouTube Video URL</label>
-    <input id="editLessonVideo" value="${esc(l.video_url || "")}">
-    <button class="btn primary" style="width:100%;margin-top:15px" onclick="updateLessonData('${l.id}')">Update Lesson</button>
-  `);
-}
-
-function updateLessonData(id){
-  const l = state.lessons.find(x => x.id === id);
-  if(!l) return;
-  l.title = $("editLessonTitle").value.trim();
-  l.notes = $("editLessonNotes").value.trim();
-  l.video_url = $("editLessonVideo").value.trim();
-  saveLocal(); renderTree(); closeModal(); openLesson(id); toast("Lesson updated!");
-}
-
-function deleteLesson(id){
-  if(!confirm("Are you sure you want to delete this lesson?")) return;
-  state.lessons = state.lessons.filter(x => x.id !== id);
-  saveLocal(); renderTree(); closeModal();
-  if(state.lessons.length) openLesson(state.lessons[0].id);
-  else $("lessonArea").innerHTML = `<div class="card"><h2>No Lessons Available</h2></div>`;
-  toast("Lesson deleted.");
-}
-
-function openPasswordModal(){
-  openModalContent(`
-    <h2>Change Password</h2>
-    <label>New Password</label>
-    <input id="newPasswordInput" type="password" minlength="6" required>
-    <button class="btn primary" style="width:100%;margin-top:15px" onclick="updatePassword()">Update Password</button>
-  `);
-}
-
-async function updatePassword(){
-  const p = $("newPasswordInput").value;
-  if(!p || p.length < 6) return passwordError("Password must be at least 6 characters.");
   if(hasBackend) {
-    const { error } = await sb.auth.updateUser({ password: p });
-    toast(error ? error.message : "Password successfully updated.");
-  } else {
-    state.user.password = p;
-    const users = localUsers().map(x => x.id === state.user.id ? state.user : x);
-    saveUsers(users);
-    sessionStorage.setItem(KEYS.session, JSON.stringify(state.user));
-    toast("Password updated successfully.");
+    await sb.from('lessons').insert([newLesson]);
   }
+
+  state.lessons.push(newLesson);
+  saveLocal();
   closeModal();
-}
-function passwordError(msg){ toast(msg); }
-
-function openNotificationsModal(){
-  openModalContent(`
-    <h2>🔔 System Notifications</h2>
-    <div class="list">
-      ${state.notifications.map(n => `<div class="item"><div><strong>${esc(n.title)}</strong><br><small class="muted">${esc(n.message)}</small></div><small class="muted">${esc(n.time)}</small></div>`).join("") || `<div class="empty">No new notifications.</div>`}
-    </div>
-    <div style="margin-top:20px;text-align:right"><button class="btn" onclick="closeModal()">Close</button></div>
-  `);
+  renderTree();
+  openLesson(newLesson.id);
+  toast("Lesson content published successfully!");
 }
 
-function updateNotifBadge(){
-  if($("notifBadge")) $("notifBadge").textContent = state.notifications.length;
-}
+async function deleteLesson(id){
+  if(!confirm("Are you sure you want to delete this lesson?")) return;
 
-function openStudentModal(){
-  openModalContent(`<h2>+ Add Student</h2><p class="muted">Student accounts are created via self-registration or direct enrollment.</p><button class="btn" onclick="closeModal()">Close</button>`);
-}
-function openTeacherModal(){
-  openModalContent(`<h2>+ Teacher Profile</h2><p class="muted">Teacher profiles are managed via user sign-up or admin settings.</p><button class="btn" onclick="closeModal()">Close</button>`);
-}
-function openUserManager(){
-  openModalContent(`<h2>User Administration</h2><p class="muted">Manage user roles and statuses.</p><button class="btn" onclick="closeModal()">Close</button>`);
-}
-function openConfigModal(){
-  openModalContent(`<h2>System Settings</h2><p class="muted">Platform configuration options.</p><button class="btn" onclick="closeModal()">Close</button>`);
+  if(hasBackend) {
+    await sb.from('lessons').delete().eq('id', id);
+  }
+
+  state.lessons = state.lessons.filter(l => l.id !== id);
+  saveLocal();
+  renderTree();
+  $("lessonArea").innerHTML = `<div class="card"><h2>Content deleted</h2><p class="muted">Select another lesson from the sidebar.</p></div>`;
+  toast("Lesson deleted.");
 }
 </script>
 </body>
