@@ -5929,46 +5929,36 @@ async function deleteLessonPrompt(
 /* =========================================================
    USER MANAGEMENT
 ========================================================= */
-async function addParticipant(email, name, role = "STUDENT") {
-  if (!isAdmin()) {
-    toast("Only administrators can add participants.", "err");
+async function openUserManagementModal(){
+  if(!canManageUsers()){
+    toast( "Only administrators can manage accounts.", "err" );
     return;
   }
+  const profiles = await safeSelect( "profiles" );
   
-  const cleanEmail = email ? email.trim() : "";
-  const cleanName = name ? name.trim() : "";
-  
-  if (!cleanEmail || !cleanName) {
-    toast("Email and name are required.", "err");
-    return;
-  }
+  openModalContent(`
+    <div style="margin-bottom: 20px;">
+      <h3>👥 User Account & Role Management</h3>
+      <p style="font-size: 0.9rem; color: #666;">Full administrator control over user roles, account status and lesson access.</p>
+      
+      <!-- COMBINED BUTTON WITH EMBEDDED PROMPT -->
+      <button onclick="(async () => {
+        const email = prompt('Enter participant email:');
+        if (!email) return;
+        const name = prompt('Enter participant name:');
+        if (!name) return;
+        const role = prompt('Enter role (STUDENT, TUTOR, or ADMIN):', 'STUDENT');
+        if (!role) return;
+        await addParticipant(email, name, role);
+      })()" style="background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+        + Add New Participant
+      </button>
+    </div>
 
-  const safeRole = ["STUDENT", "TUTOR", "ADMIN"].includes(role.toUpperCase()) 
-    ? role.toUpperCase() 
-    : "STUDENT";
-
-  const { error } = await sb
-    .from("profiles")
-    .insert({
-      id: crypto.randomUUID(), // Generates a unique profile ID
-      email: cleanEmail,
-      name: cleanName,
-      role: safeRole,
-      status: "ACTIVE"
-    });
-
-  if (dbError(error, "Adding participant")) {
-    return;
-  }
-
-  toast(`Participant added successfully as ${safeRole}.`);
-  
-  // Refresh your user management modal if it's currently open
-  if (typeof openUserManagementModal === 'function') {
-    await openUserManagementModal();
-  }
+    ${ profiles.length ? profiles.map( p => `...` ).join("") : `No user profiles found.` }
+  `);
 }
-
+  
   async function openUserManagementModal(){
 
   if(!canManageUsers()){
