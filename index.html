@@ -4774,39 +4774,7 @@ function updateManagerClassesDropdown(
 /* =========================================================
    LEVEL CRUD
 ========================================================= */
-<script>
-  document.addEventListener('click', async function (event) {
-    const target = event.target;
-    
-    // Check if the clicked element is an Edit, View, or Delete button/icon
-    const actionType = target.dataset.action || target.innerText.trim().toLowerCase();
-    const rowId = target.dataset.id || target.closest('tr')?.dataset.id;
-    const tableName = target.dataset.table || 'app_classes'; // Change default table if needed
 
-    if (!rowId) return; // Exit if no record ID is tied to the row
-
-    if (actionType.includes('delete')) {
-      if (confirm('Are you sure you want to delete this item?')) {
-        const { error } = await supabase.from(tableName).delete().eq('id', rowId);
-        if (error) alert('Delete failed: ' + error.message);
-        else location.reload();
-      }
-    } 
-    else if (actionType.includes('edit')) {
-      const newValue = prompt('Enter new name/title:');
-      if (newValue) {
-        const { error } = await supabase.from(tableName).update({ name: newValue }).eq('id', rowId);
-        if (error) alert('Update failed: ' + error.message);
-        else location.reload();
-      }
-    }
-    else if (actionType.includes('view')) {
-      const { data, error } = await supabase.from(tableName).select('*').eq('id', rowId).single();
-      if (error) alert('Could not fetch details: ' + error.message);
-      else alert(JSON.stringify(data, null, 2));
-    }
-  });
-</script>
 async function addLevel(){
 
   if(
@@ -7923,6 +7891,38 @@ function initWhiteboard(){
 ========================================================= */
 
 </script>
+<script>
+  document.addEventListener('click', async function (event) {
+    const target = event.target;
+    
+    // Check if the clicked element is an Edit, View, or Delete button/icon
+    const actionType = target.dataset.action || target.innerText.trim().toLowerCase();
+    const rowId = target.dataset.id || target.closest('tr')?.dataset.id;
+    const tableName = target.dataset.table || 'app_classes'; // Change default table if needed
 
+    if (!rowId) return; // Exit if no record ID is tied to the row
+
+    if (actionType.includes('delete')) {
+      if (confirm('Are you sure you want to delete this item?')) {
+        const { error } = await sb.from(tableName).delete().eq('id', rowId);
+        if (error) alert('Delete failed: ' + error.message);
+        else location.reload();
+      }
+    } 
+    else if (actionType.includes('edit')) {
+      const newValue = prompt('Enter new name/title:');
+      if (newValue) {
+        const { error } = await sb.from(tableName).update({ name: newValue }).eq('id', rowId);
+        if (error) alert('Update failed: ' + error.message);
+        else location.reload();
+      }
+    }
+    else if (actionType.includes('view')) {
+      const { data, error } = await sb.from(tableName).select('*').eq('id', rowId).single();
+      if (error) alert('Could not fetch details: ' + error.message);
+      else alert(JSON.stringify(data, null, 2));
+    }
+  });
+</script>
 </body>
 </html>
