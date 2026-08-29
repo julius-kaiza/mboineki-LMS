@@ -5929,8 +5929,47 @@ async function deleteLessonPrompt(
 /* =========================================================
    USER MANAGEMENT
 ========================================================= */
+async function addParticipant(email, name, role = "STUDENT") {
+  if (!isAdmin()) {
+    toast("Only administrators can add participants.", "err");
+    return;
+  }
+  
+  const cleanEmail = email ? email.trim() : "";
+  const cleanName = name ? name.trim() : "";
+  
+  if (!cleanEmail || !cleanName) {
+    toast("Email and name are required.", "err");
+    return;
+  }
 
-async function openUserManagementModal(){
+  const safeRole = ["STUDENT", "TUTOR", "ADMIN"].includes(role.toUpperCase()) 
+    ? role.toUpperCase() 
+    : "STUDENT";
+
+  const { error } = await sb
+    .from("profiles")
+    .insert({
+      id: crypto.randomUUID(), // Generates a unique profile ID
+      email: cleanEmail,
+      name: cleanName,
+      role: safeRole,
+      status: "ACTIVE"
+    });
+
+  if (dbError(error, "Adding participant")) {
+    return;
+  }
+
+  toast(`Participant added successfully as ${safeRole}.`);
+  
+  // Refresh your user management modal if it's currently open
+  if (typeof openUserManagementModal === 'function') {
+    await openUserManagementModal();
+  }
+}
+
+  async function openUserManagementModal(){
 
   if(!canManageUsers()){
 
