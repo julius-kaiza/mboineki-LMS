@@ -9265,6 +9265,11 @@ function openLiveStudio(){
     hasPermission("microphone");
 
 
+  const screenAllowed =
+    isAdmin() ||
+    hasPermission("screen");
+
+
   const whiteboardAllowed =
     isAdmin() ||
     hasPermission("whiteboard");
@@ -9282,7 +9287,7 @@ function openLiveStudio(){
     </h2>
 
     <p class="muted">
-      Live video, realtime classroom chat
+      Live video, screen sharing, realtime classroom chat
       and interactive whiteboard.
     </p>
 
@@ -9303,6 +9308,25 @@ function openLiveStudio(){
               onclick="startCameraStream()"
             >
               Start Camera Feed
+            </button>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        screenAllowed
+
+          ? `
+
+            <button
+              type="button"
+              class="btn primary"
+              onclick="startScreenShare()"
+            >
+              Share Screen
             </button>
 
           `
@@ -9566,6 +9590,14 @@ async function startCameraStream(){
     }
 
 
+    if(state.screenStream){
+      state.screenStream
+        .getTracks()
+        .forEach(track => track.stop());
+      state.screenStream = null;
+    }
+
+
     const useMicrophone =
       isAdmin() ||
       hasPermission("microphone");
@@ -9668,6 +9700,196 @@ async function startCameraStream(){
 }
 
 
+async function startScreenShare(){
+
+  if(
+    !isAdmin() &&
+    !hasPermission("screen")
+  ){
+
+    toast(
+      "Screen sharing has been disabled by the administrator.",
+      "err"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !navigator.mediaDevices ||
+    typeof navigator.mediaDevices.getDisplayMedia !== "function"
+  ){
+
+    toast(
+      "Screen sharing is not supported by this browser.",
+      "err"
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    if(state.screenStream){
+
+      state.screenStream
+        .getTracks()
+        .forEach(track => track.stop());
+
+      state.screenStream = null;
+
+    }
+
+    if(state.activeStream){
+
+      state.activeStream
+        .getTracks()
+        .forEach(track => track.stop());
+
+      state.activeStream = null;
+
+    }
+
+
+    const screenStream =
+      await navigator.mediaDevices
+        .getDisplayMedia({
+          video: true,
+          audio: true
+        });
+
+
+    state.screenStream =
+      screenStream;
+
+
+    const localVideo =
+      $("localVideo");
+
+
+    if(localVideo){
+
+      localVideo.srcObject =
+        screenStream;
+
+
+      try{
+
+        await localVideo.play();
+
+      }catch(error){
+
+        console.warn(
+          "Screen share autoplay warning:",
+          error
+        );
+
+      }
+
+    }
+
+
+    /*
+      Handle user clicking browser's native "Stop sharing" button.
+    */
+
+    const videoTrack =
+      screenStream.getVideoTracks()[0];
+
+    if(videoTrack){
+
+      videoTrack.onended = () => {
+
+        stopScreenShare();
+
+        toast("Screen sharing stopped.");
+
+      };
+
+    }
+
+
+    toast("Screen sharing started.");
+
+  }catch(err){
+
+    console.error(
+      "Screen share error:",
+      err
+    );
+
+
+    let message =
+      "Could not start screen sharing.";
+
+
+    if(
+      err?.name ===
+      "NotAllowedError"
+    ){
+
+      message =
+        "Screen sharing permission was denied.";
+
+    }
+
+
+    toast(
+      message,
+      "err"
+    );
+
+  }
+
+}
+
+
+function stopScreenShare(){
+
+  if(state.screenStream){
+
+    try{
+
+      state.screenStream
+        .getTracks()
+        .forEach(track => track.stop());
+
+    }catch(error){
+
+      console.warn(
+        "Screen share stop warning:",
+        error
+      );
+
+    }
+
+    state.screenStream = null;
+
+  }
+
+  const localVideo =
+    $("localVideo");
+
+  if(localVideo && localVideo.srcObject && !state.activeStream){
+
+    try{
+
+      localVideo.pause();
+
+    }catch(error){}
+
+    localVideo.srcObject =
+      null;
+
+  }
+
+}
+
+
 async function stopLiveStudioResources(){
 
   /*
@@ -9709,6 +9931,36 @@ async function stopLiveStudioResources(){
     }
 
     state.activeStream =
+      null;
+
+  }
+
+
+  /*
+    Stop screen stream.
+  */
+
+  if(state.screenStream){
+
+    try{
+
+      state.screenStream
+        .getTracks()
+        .forEach(
+          track => {
+
+            try{
+
+              track.stop();
+
+            }catch(error){}
+
+          }
+        );
+
+    }catch(error){}
+
+    state.screenStream =
       null;
 
   }
@@ -9769,7 +10021,6 @@ async function stopLiveStudioResources(){
   }
 
 }
-
 
 /* =========================================================
    REALTIME CHAT
