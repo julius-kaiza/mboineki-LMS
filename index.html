@@ -193,6 +193,39 @@ input[type="checkbox"]{
   font-size:13px;
 }
 
+.tree-topic{
+  margin-left:40px;
+  color:#f0c674;
+  font-size:13px;
+}
+.tree-subtopic{
+  margin-left:50px;
+  color:#c9b8ff;
+  font-size:12px;
+}
+.tree-content{
+  margin-left:60px;
+  color:#b7c8d9;
+  font-size:12px;
+}
+.structure-node{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px;
+  background:var(--surface3);
+  margin:8px 0;
+}
+.structure-topic{margin-left:0}
+.structure-subtopic{margin-left:18px}
+.structure-content{margin-left:36px}
+.sort-active{outline:2px solid var(--primary)}
+@media(max-width:800px){
+  .tree-topic{margin-left:30px}
+  .tree-subtopic{margin-left:40px}
+  .tree-content{margin-left:50px}
+}
+
+
 .active{
   background:var(--primary)!important;
   color:white!important;
@@ -802,6 +835,15 @@ Select an item from the curriculum tree.
 📤 Share
 </button>
 
+<button
+  id="sortContentButton"
+  class="btn"
+  onclick="toggleAlphabeticalSort()"
+  title="Arrange curriculum content alphabetically"
+>
+  A–Z ✓
+</button>
+
 <span
   id="roleBadge"
   class="status"
@@ -1051,6 +1093,8 @@ const state = {
   active:null,
 
   expanded:{},
+
+  sortAlphabetically:true,
 
   activeStream:null,
 
@@ -2976,6 +3020,998 @@ function youtubeBlock(url){
 
 
 /* =========================================================
+   CURRICULUM / CONTENT HELPERS
+========================================================= */
+
+function alphaCompare(a,b){
+  const left =
+    String(a?.title ?? a?.name ?? a?.subject_name ?? a?.class_name ?? a ?? "")
+      .trim();
+
+  const right =
+    String(b?.title ?? b?.name ?? b?.subject_name ?? b?.class_name ?? b ?? "")
+      .trim();
+
+  return left.localeCompare(
+    right,
+    undefined,
+    {
+      numeric:true,
+      sensitivity:"base"
+    }
+  );
+}
+
+function alphaSorted(list){
+  const copy =
+    Array.isArray(list)
+      ? [...list]
+      : [];
+
+  return state.sortAlphabetically
+    ? copy.sort(alphaCompare)
+    : copy;
+}
+
+function toggleAlphabeticalSort(){
+  state.sortAlphabetically =
+    !state.sortAlphabetically;
+
+  renderTree();
+
+  const button =
+    $("sortContentButton");
+
+  if(button){
+    button.classList.toggle(
+      "sort-active",
+      state.sortAlphabetically
+    );
+
+    button.textContent =
+      state.sortAlphabetically
+        ? "A–Z ✓"
+        : "A–Z";
+  }
+
+  if(state.active){
+    const lesson =
+      state.lessons.find(
+        l => l.id === state.active
+      );
+
+    if(lesson){
+      openLesson(
+        lesson.id
+      );
+    }
+  }
+
+  toast(
+    state.sortAlphabetically
+      ? "Curriculum content arranged alphabetically."
+      : "Alphabetical arrangement turned off."
+  );
+}
+
+function parseLessonStructure(rawContent){
+  const raw =
+    String(rawContent ?? "");
+
+  if(!raw.trim()){
+    return null;
+  }
+
+  try{
+    const parsed =
+      JSON.parse(raw);
+
+    if(
+      parsed &&
+      parsed.__mboineki_lesson_structure === 1 &&
+      Array.isArray(parsed.children)
+    ){
+      return {
+        __mboineki_lesson_structure:1,
+        version:1,
+        intro:String(parsed.intro ?? ""),
+        children:normaliseContentNodes(
+          parsed.children
+        )
+      };
+    }
+  }catch{
+    /* Existing plain-text lesson content remains supported. */
+  }
+
+  return null;
+}
+
+function normaliseContentNodes(nodes){
+  return (Array.isArray(nodes) ? nodes : [])
+    .map(node => ({
+      id:
+        node?.id ||
+        uid("node"),
+      type:
+        ["topic","subtopic","content"].includes(
+          node?.type
+        )
+          ? node.type
+          : "content",
+      title:
+        String(node?.title ?? "").trim() ||
+        "Untitled",
+      content:
+        String(node?.content ?? ""),
+      videoUrl:
+        String(node?.videoUrl ?? ""),
+      accessType:
+        node?.accessType === "PAID"
+          ? "PAID"
+          : "FREE",
+      price:
+        Number.isFinite(Number(node?.price))
+          ? Math.max(0,Number(node.price))
+          : 0,
+      children:
+        normaliseContentNodes(
+          node?.children
+        )
+    }));
+}
+
+function createLessonStructure(lesson){
+  const parsed =
+    parseLessonStructure(
+      lesson?.content
+    );
+
+  if(parsed){
+    return parsed;
+  }
+
+  return {
+    __mboineki_lesson_structure:1,
+    version:1,
+    intro:String(
+      lesson?.content ?? ""
+    ),
+    children:[]
+  };
+}
+
+function serializeLessonStructure(structure){
+  return JSON.stringify({
+    __mboineki_lesson_structure:1,
+    version:1,
+    intro:String(
+      structure?.intro ?? ""
+    ),
+    children:
+      normaliseContentNodes(
+        structure?.children
+      )
+  });
+}
+
+function findContentNode(
+  nodes,
+  nodeId
+){
+  for(const node of (nodes || [])){
+    if(node.id === nodeId){
+      return node;
+    }
+
+    const found =
+      findContentNode(
+        node.children,
+        nodeId
+      );
+
+    if(found){
+      return found;
+    }
+  }
+
+  return null;
+}
+
+function removeContentNode(
+  nodes,
+  nodeId
+){
+  if(!Array.isArray(nodes)){
+    return false;
+  }
+
+  const index =
+    nodes.findIndex(
+      node => node.id === nodeId
+    );
+
+  if(index >= 0){
+    nodes.splice(index,1);
+    return true;
+  }
+
+  return nodes.some(
+    node =>
+      removeContentNode(
+        node.children,
+        nodeId
+      )
+  );
+}
+
+function structureDisplayNodes(nodes){
+  return alphaSorted(nodes)
+    .map(
+      node => {
+
+        const icon =
+          node.type === "topic"
+            ? "📚"
+            : node.type === "subtopic"
+              ? "📑"
+              : "📄";
+
+        const childHtml =
+          node.children?.length
+            ? structureDisplayNodes(
+                node.children
+              )
+            : "";
+
+        const body =
+          node.content ||
+          node.videoUrl
+            ? `
+              <div
+                style="
+                  margin-top:8px;
+                  line-height:1.7;
+                  white-space:pre-wrap
+                "
+              >
+                ${
+                  node.content
+                    ? esc(node.content)
+                    : ""
+                }
+              </div>
+
+              ${
+                node.videoUrl
+                  ? youtubeBlock(
+                      node.videoUrl
+                    )
+                  : ""
+              }
+            `
+            : "";
+
+        return `
+          <div class="structure-node structure-${esc(node.type)}">
+            <strong>
+              ${icon} ${esc(node.title)}
+            </strong>
+            ${body}
+            ${childHtml}
+          </div>
+        `;
+      }
+    )
+    .join("");
+}
+
+async function saveLessonStructure(
+  lessonId,
+  structure
+){
+  if(
+    !lessonId ||
+    !structure
+  ){
+    return false;
+  }
+
+  if(!canEditLessons()){
+    toast(
+      "You do not have permission to edit lesson content.",
+      "err"
+    );
+    return false;
+  }
+
+  const serialised =
+    serializeLessonStructure(
+      structure
+    );
+
+  const res =
+    await upsert(
+      "app_lessons",
+      {
+        id:lessonId,
+        content:serialised
+      },
+      "Saving lesson content structure"
+    );
+
+  if(!res){
+    return false;
+  }
+
+  const index =
+    state.lessons.findIndex(
+      lesson => lesson.id === lessonId
+    );
+
+  if(index >= 0){
+    state.lessons[index] = {
+      ...state.lessons[index],
+      content:serialised
+    };
+  }
+
+  return true;
+}
+
+function promptContentNodeDetails(
+  type,
+  existing={}
+){
+  const title =
+    prompt(
+      type === "topic"
+        ? "Topic title:"
+        : type === "subtopic"
+          ? "Subtopic title:"
+          : "Content title:",
+      existing.title || ""
+    );
+
+  if(!title?.trim()){
+    return null;
+  }
+
+  const content =
+    prompt(
+      type === "content"
+        ? "Content / learning material:"
+        : "Description / introductory material (optional):",
+      existing.content || ""
+    );
+
+  const videoUrl =
+    type === "content"
+      ? prompt(
+          "YouTube URL (optional):",
+          existing.videoUrl || ""
+        )
+      : existing.videoUrl || "";
+
+  return {
+    title:title.trim(),
+    content:String(content ?? ""),
+    videoUrl:String(videoUrl ?? "").trim()
+  };
+}
+
+async function addTopic(lessonId){
+  if(!canEditLessons()){
+    toast(
+      "You do not have permission to add topics.",
+      "err"
+    );
+    return;
+  }
+
+  const lesson =
+    state.lessons.find(
+      l => l.id === lessonId
+    );
+
+  if(!lesson){
+    return;
+  }
+
+  const details =
+    promptContentNodeDetails(
+      "topic"
+    );
+
+  if(!details){
+    return;
+  }
+
+  const structure =
+    createLessonStructure(
+      lesson
+    );
+
+  structure.children.push({
+    id:uid("topic"),
+    type:"topic",
+    ...details,
+    accessType:"FREE",
+    price:0,
+    children:[]
+  });
+
+  if(
+    await saveLessonStructure(
+      lessonId,
+      structure
+    )
+  ){
+    toast(
+      "Topic added successfully."
+    );
+
+    await refreshData();
+    openLessonStructureManager(
+      lessonId
+    );
+  }
+}
+
+async function addSubtopic(
+  lessonId,
+  topicId
+){
+  if(!canEditLessons()){
+    toast(
+      "You do not have permission to add subtopics.",
+      "err"
+    );
+    return;
+  }
+
+  const lesson =
+    state.lessons.find(
+      l => l.id === lessonId
+    );
+
+  if(!lesson){
+    return;
+  }
+
+  const structure =
+    createLessonStructure(
+      lesson
+    );
+
+  const parent =
+    findContentNode(
+      structure.children,
+      topicId
+    );
+
+  if(
+    !parent ||
+    !["topic","subtopic"].includes(
+      parent.type
+    )
+  ){
+    toast(
+      "Select a topic or subtopic first.",
+      "err"
+    );
+    return;
+  }
+
+  const details =
+    promptContentNodeDetails(
+      "subtopic"
+    );
+
+  if(!details){
+    return;
+  }
+
+  parent.children.push({
+    id:uid("subtopic"),
+    type:"subtopic",
+    ...details,
+    accessType:"FREE",
+    price:0,
+    children:[]
+  });
+
+  if(
+    await saveLessonStructure(
+      lessonId,
+      structure
+    )
+  ){
+    toast(
+      "Subtopic added successfully."
+    );
+
+    await refreshData();
+    openLessonStructureManager(
+      lessonId
+    );
+  }
+}
+
+async function addContentNode(
+  lessonId,
+  parentId=null
+){
+  if(!canEditLessons()){
+    toast(
+      "You do not have permission to add content.",
+      "err"
+    );
+    return;
+  }
+
+  const lesson =
+    state.lessons.find(
+      l => l.id === lessonId
+    );
+
+  if(!lesson){
+    return;
+  }
+
+  const structure =
+    createLessonStructure(
+      lesson
+    );
+
+  const details =
+    promptContentNodeDetails(
+      "content"
+    );
+
+  if(!details){
+    return;
+  }
+
+  const node = {
+    id:uid("content"),
+    type:"content",
+    ...details,
+    accessType:"FREE",
+    price:0,
+    children:[]
+  };
+
+  if(parentId){
+    const parent =
+      findContentNode(
+        structure.children,
+        parentId
+      );
+
+    if(
+      !parent ||
+      !["topic","subtopic"].includes(
+        parent.type
+      )
+    ){
+      toast(
+        "Content can only be placed directly under a topic or subtopic.",
+        "err"
+      );
+      return;
+    }
+
+    parent.children.push(node);
+  }else{
+    structure.children.push(node);
+  }
+
+  if(
+    await saveLessonStructure(
+      lessonId,
+      structure
+    )
+  ){
+    toast(
+      "Content added successfully."
+    );
+
+    await refreshData();
+    openLessonStructureManager(
+      lessonId
+    );
+  }
+}
+
+async function editContentNode(
+  lessonId,
+  nodeId
+){
+  if(!canEditLessons()){
+    return;
+  }
+
+  const lesson =
+    state.lessons.find(
+      l => l.id === lessonId
+    );
+
+  if(!lesson){
+    return;
+  }
+
+  const structure =
+    createLessonStructure(
+      lesson
+    );
+
+  const node =
+    findContentNode(
+      structure.children,
+      nodeId
+    );
+
+  if(!node){
+    return;
+  }
+
+  const details =
+    promptContentNodeDetails(
+      node.type,
+      node
+    );
+
+  if(!details){
+    return;
+  }
+
+  Object.assign(
+    node,
+    details
+  );
+
+  if(
+    await saveLessonStructure(
+      lessonId,
+      structure
+    )
+  ){
+    toast(
+      "Content item updated."
+    );
+
+    await refreshData();
+    openLessonStructureManager(
+      lessonId
+    );
+  }
+}
+
+async function deleteContentNodePrompt(
+  lessonId,
+  nodeId
+){
+  if(!canDeleteLessons()){
+    toast(
+      "You do not have permission to delete content items.",
+      "err"
+    );
+    return;
+  }
+
+  const lesson =
+    state.lessons.find(
+      l => l.id === lessonId
+    );
+
+  if(!lesson){
+    return;
+  }
+
+  const structure =
+    createLessonStructure(
+      lesson
+    );
+
+  const node =
+    findContentNode(
+      structure.children,
+      nodeId
+    );
+
+  if(!node){
+    return;
+  }
+
+  if(
+    !confirm(
+      `Delete "${node.title}" and all of its children?`
+    )
+  ){
+    return;
+  }
+
+  removeContentNode(
+    structure.children,
+    nodeId
+  );
+
+  if(
+    await saveLessonStructure(
+      lessonId,
+      structure
+    )
+  ){
+    toast(
+      "Content item deleted."
+    );
+
+    await refreshData();
+    openLessonStructureManager(
+      lessonId
+    );
+  }
+}
+
+async function openLessonStructureManager(
+  lessonId
+){
+  if(!canEditLessons()){
+    toast(
+      "Lesson content management is disabled for your account.",
+      "err"
+    );
+    return;
+  }
+
+  const lesson =
+    state.lessons.find(
+      l => l.id === lessonId
+    );
+
+  if(!lesson){
+    return;
+  }
+
+  const structure =
+    createLessonStructure(
+      lesson
+    );
+
+  function renderManagerNodes(nodes){
+    return alphaSorted(nodes)
+      .map(
+        node => `
+          <div class="structure-node structure-${esc(node.type)}">
+            <div
+              class="row wrap"
+              style="justify-content:space-between"
+            >
+              <strong>
+                ${
+                  node.type === "topic"
+                    ? "📚"
+                    : node.type === "subtopic"
+                      ? "📑"
+                      : "📄"
+                }
+                ${esc(node.title)}
+              </strong>
+
+              <div class="row wrap">
+                ${
+                  node.type === "topic"
+                    ? `
+                      <button
+                        class="btn primary"
+                        type="button"
+                        onclick="addSubtopic(
+                          ${JSON.stringify(lessonId)},
+                          ${JSON.stringify(node.id)}
+                        )"
+                      >
+                        + Subtopic
+                      </button>
+                    `
+                    : ""
+                }
+
+                ${
+                  node.type === "topic" ||
+                  node.type === "subtopic"
+                    ? `
+                      <button
+                        class="btn success"
+                        type="button"
+                        onclick="addContentNode(
+                          ${JSON.stringify(lessonId)},
+                          ${JSON.stringify(node.id)}
+                        )"
+                      >
+                        + Content
+                      </button>
+                    `
+                    : ""
+                }
+
+                <button
+                  class="btn warn"
+                  type="button"
+                  onclick="editContentNode(
+                    ${JSON.stringify(lessonId)},
+                    ${JSON.stringify(node.id)}
+                  )"
+                >
+                  Edit
+                </button>
+
+                <button
+                  class="btn danger"
+                  type="button"
+                  onclick="deleteContentNodePrompt(
+                    ${JSON.stringify(lessonId)},
+                    ${JSON.stringify(node.id)}
+                  )"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+
+            ${
+              node.content
+                ? `
+                  <div
+                    class="muted small"
+                    style="
+                      margin-top:7px;
+                      white-space:pre-wrap
+                    "
+                  >
+                    ${esc(node.content)}
+                  </div>
+                `
+                : ""
+            }
+
+            ${
+              node.children?.length
+                ? renderManagerNodes(
+                    node.children
+                  )
+                : (
+                    node.type !== "content"
+                      ? `
+                        <div class="empty small">
+                          No child items yet.
+                        </div>
+                      `
+                      : ""
+                  )
+            }
+          </div>
+        `
+      )
+      .join("");
+  }
+
+  openModalContent(`
+    <h2>📚 Lesson Content Structure</h2>
+
+    <p class="muted">
+      ${esc(lesson.title)}
+    </p>
+
+    <div class="notice">
+      Structure:
+      <strong>Lesson → Topics → Subtopics / Content</strong>.
+      Content may be placed directly under a topic or inside a subtopic.
+      Existing plain-text lesson content is preserved as the lesson introduction.
+    </div>
+
+    <div
+      class="row wrap"
+      style="margin-top:15px"
+    >
+      <button
+        class="btn primary"
+        type="button"
+        onclick="addTopic(
+          ${JSON.stringify(lessonId)}
+        )"
+      >
+        + Add Topic
+      </button>
+
+      <button
+        class="btn success"
+        type="button"
+        onclick="addContentNode(
+          ${JSON.stringify(lessonId)},
+          null
+        )"
+      >
+        + Add Lesson Content
+      </button>
+
+      <button
+        class="btn ${
+          state.sortAlphabetically
+            ? "primary"
+            : ""
+        }"
+        type="button"
+        onclick="toggleAlphabeticalSort();openLessonStructureManager(
+          ${JSON.stringify(lessonId)}
+        )"
+      >
+        ${
+          state.sortAlphabetically
+            ? "A–Z ✓"
+            : "A–Z"
+        }
+      </button>
+    </div>
+
+    <div
+      class="card"
+      style="margin-top:15px"
+    >
+      <strong>Lesson Introduction</strong>
+
+      <div
+        class="muted"
+        style="
+          margin-top:8px;
+          white-space:pre-wrap;
+          line-height:1.7
+        "
+      >
+        ${
+          esc(
+            structure.intro ||
+            "No separate introduction provided."
+          )
+        }
+      </div>
+    </div>
+
+    <div style="margin-top:15px">
+      ${
+        structure.children.length
+          ? renderManagerNodes(
+              structure.children
+            )
+          : `
+            <div class="empty">
+              No topics or additional content have been added yet.
+            </div>
+          `
+      }
+    </div>
+
+    <div
+      class="row"
+      style="
+        justify-content:flex-end;
+        margin-top:20px
+      "
+    >
+      <button
+        class="btn"
+        type="button"
+        onclick="closeModal();openLesson(
+          ${JSON.stringify(lessonId)}
+        )"
+      >
+        Done
+      </button>
+    </div>
+  `);
+}
+
+/* =========================================================
    CURRICULUM TREE
 ========================================================= */
 
@@ -2994,15 +4030,12 @@ function renderTree(){
   const tree =
     $("tree");
 
-
   if(!tree){
     return;
   }
 
-
   tree.innerHTML =
     "";
-
 
   if(
     !hasPermission(
@@ -3010,31 +4043,25 @@ function renderTree(){
     ) &&
     !isAdmin()
   ){
-
     tree.innerHTML = `
-
       <div class="empty">
-
         Curriculum access has been
         disabled by the administrator.
-
       </div>
-
     `;
 
     return;
-
   }
 
-
-  state.levels.forEach(
+  alphaSorted(
+    state.levels
+  ).forEach(
     level => {
 
       const node =
         document.createElement(
           "div"
         );
-
 
       node.className =
         `tree-item tree-level ${
@@ -3043,14 +4070,12 @@ function renderTree(){
             : ""
         }`;
 
-
       node.innerHTML =
         `<strong>${
           state.expanded[level]
             ? "📂"
             : "📁"
         } ${esc(level)}</strong>`;
-
 
       node.onclick =
         event => {
@@ -3065,11 +4090,9 @@ function renderTree(){
 
         };
 
-
       tree.appendChild(
         node
       );
-
 
       if(
         !state.expanded[level]
@@ -3077,8 +4100,7 @@ function renderTree(){
         return;
       }
 
-
-      (
+      alphaSorted(
         state.classes[level] ||
         []
       ).forEach(
@@ -3087,12 +4109,10 @@ function renderTree(){
           const key =
             `${level}__${cls}`;
 
-
           const node =
             document.createElement(
               "div"
             );
-
 
           node.className =
             `tree-item tree-class ${
@@ -3101,14 +4121,12 @@ function renderTree(){
                 : ""
             }`;
 
-
           node.innerHTML =
             `<strong>${
               state.expanded[key]
                 ? "🏫"
                 : "🏛️"
             } ${esc(cls)}</strong>`;
-
 
           node.onclick =
             event => {
@@ -3124,11 +4142,9 @@ function renderTree(){
 
             };
 
-
           tree.appendChild(
             node
           );
-
 
           if(
             !state.expanded[key]
@@ -3136,8 +4152,7 @@ function renderTree(){
             return;
           }
 
-
-          (
+          alphaSorted(
             state.subjects[key] ||
             []
           ).forEach(
@@ -3146,12 +4161,10 @@ function renderTree(){
               const subjectKey =
                 `${level}__${cls}__${subject}`;
 
-
               const node =
                 document.createElement(
                   "div"
                 );
-
 
               node.className =
                 `tree-item tree-subject ${
@@ -3160,14 +4173,12 @@ function renderTree(){
                     : ""
                 }`;
 
-
               node.innerHTML =
                 `<strong>${
                   state.expanded[subjectKey]
                     ? "📖"
                     : "📘"
                 } ${esc(subject)}</strong>`;
-
 
               node.onclick =
                 event => {
@@ -3186,11 +4197,9 @@ function renderTree(){
 
                 };
 
-
               tree.appendChild(
                 node
               );
-
 
               if(
                 !state.expanded[
@@ -3200,72 +4209,191 @@ function renderTree(){
                 return;
               }
 
-
-              state.lessons
-                .filter(
+              alphaSorted(
+                state.lessons.filter(
                   lesson =>
                     lesson.level === level &&
                     lesson.class === cls &&
                     lesson.subject === subject
                 )
-                .forEach(
-                  lesson => {
+              ).forEach(
+                lesson => {
 
-                    const node =
-                      document.createElement(
-                        "div"
-                      );
+                  const lessonKey =
+                    `lesson__${lesson.id}`;
 
-
-                    node.className =
-                      `tree-item tree-lesson ${
-                        state.active === lesson.id
-                          ? "active"
-                          : ""
-                      }`;
-
-
-                    node.innerHTML =
-                      `<span>
-                        ▶ ${esc(lesson.title)}
-                        ${
-                          lesson.accessType === "PAID"
-                            ? " 🔒"
-                            : ""
-                        }
-                      </span>`;
-
-
-                    node.onclick =
-                      event => {
-
-                        event.stopPropagation();
-
-                        openLesson(
-                          lesson.id
-                        );
-
-                      };
-
-
-                    tree.appendChild(
-                      node
+                  const node =
+                    document.createElement(
+                      "div"
                     );
 
-                  }
-                );
+                  node.className =
+                    `tree-item tree-lesson ${
+                      state.active === lesson.id
+                        ? "active"
+                        : ""
+                    }`;
 
+                  node.innerHTML =
+                    `<span>
+                      ▶ ${esc(lesson.title)}
+                      ${
+                        lesson.accessType === "PAID"
+                          ? " 🔒"
+                          : ""
+                      }
+                    </span>`;
+
+                  node.onclick =
+                    event => {
+
+                      event.stopPropagation();
+
+                      state.expanded[
+                        lessonKey
+                      ] =
+                        !state.expanded[
+                          lessonKey
+                        ];
+
+                      openLesson(
+                        lesson.id
+                      );
+
+                    };
+
+                  tree.appendChild(
+                    node
+                  );
+
+                  const structure =
+                    parseLessonStructure(
+                      lesson.content
+                    );
+
+                  if(
+                    !structure ||
+                    !state.expanded[
+                      lessonKey
+                    ]
+                  ){
+                    return;
+                  }
+
+                  renderTreeContentChildren(
+                    tree,
+                    structure.children,
+                    lesson.id
+                  );
+                }
+              );
             }
           );
-
         }
       );
-
     }
   );
 
+  const sortButton =
+    $("sortContentButton");
+
+  if(sortButton){
+    sortButton.classList.toggle(
+      "sort-active",
+      state.sortAlphabetically
+    );
+
+    sortButton.textContent =
+      state.sortAlphabetically
+        ? "A–Z ✓"
+        : "A–Z";
+  }
 }
 
+function renderTreeContentChildren(
+  tree,
+  nodes,
+  lessonId
+){
+  alphaSorted(nodes).forEach(
+    item => {
+
+      const node =
+        document.createElement(
+          "div"
+        );
+
+      const className =
+        item.type === "topic"
+          ? "tree-topic"
+          : item.type === "subtopic"
+            ? "tree-subtopic"
+            : "tree-content";
+
+      const key =
+        `node__${item.id}`;
+
+      node.className =
+        `tree-item ${className} ${
+          state.active === item.id
+            ? "active"
+            : ""
+        }`;
+
+      const icon =
+        item.type === "topic"
+          ? "📚"
+          : item.type === "subtopic"
+            ? "📑"
+            : "📄";
+
+      node.innerHTML =
+        `<span>
+          ${icon} ${esc(item.title)}
+          ${
+            item.videoUrl
+              ? " 🎥"
+              : ""
+          }
+        </span>`;
+
+      node.onclick =
+        event => {
+
+          event.stopPropagation();
+
+          state.active =
+            item.id;
+
+          if(
+            item.children?.length
+          ){
+            state.expanded[key] =
+              !state.expanded[key];
+          }
+
+          openLesson(
+            lessonId
+          );
+        };
+
+      tree.appendChild(
+        node
+      );
+
+      if(
+        item.children?.length &&
+        state.expanded[key]
+      ){
+        renderTreeContentChildren(
+          tree,
+          item.children,
+          lessonId
+        );
+      }
+    }
+  );
+}
 
 /* =========================================================
    CURRICULUM VIEWS
@@ -3304,8 +4432,10 @@ function filterByLevel(level){
 
 
   const classes =
-    state.classes[level] ||
-    [];
+    alphaSorted(
+      state.classes[level] ||
+      []
+    );
 
 
   if($("lessonArea")){
@@ -3427,8 +4557,10 @@ function filterByClass(
 
 
   const subjects =
-    state.subjects[key] ||
-    [];
+    alphaSorted(
+      state.subjects[key] ||
+      []
+    );
 
 
   if($("lessonArea")){
@@ -3554,11 +4686,13 @@ function filterBySubject(
 
 
   const lessons =
-    state.lessons.filter(
-      lesson =>
-        lesson.level === level &&
-        lesson.class === cls &&
-        lesson.subject === subject
+    alphaSorted(
+      state.lessons.filter(
+        lesson =>
+          lesson.level === level &&
+          lesson.class === cls &&
+          lesson.subject === subject
+      )
     );
 
 
@@ -3672,6 +4806,26 @@ async function openLesson(id){
 
   state.active =
     id;
+
+  const activeLesson =
+    state.lessons.find(
+      lesson => lesson.id === id
+    );
+
+  if(activeLesson){
+    state.expanded[
+      activeLesson.level
+    ] = true;
+
+    const classKey =
+      `${activeLesson.level}__${activeLesson.class}`;
+
+    const subjectKey =
+      `${activeLesson.level}__${activeLesson.class}__${activeLesson.subject}`;
+
+    state.expanded[classKey] = true;
+    state.expanded[subjectKey] = true;
+  }
 
   renderTree();
 
@@ -3823,17 +4977,62 @@ async function openLesson(id){
                   : ""
               }
 
-              <div
-                style="
-                  line-height:1.7;
-                  white-space:pre-wrap
-                "
-              >
-                ${esc(
-                  lesson.content ||
-                  "No detailed content provided for this lesson."
-                )}
-              </div>
+              ${
+                (() => {
+                  const structure =
+                    parseLessonStructure(
+                      lesson.content
+                    );
+
+                  if(!structure){
+                    return `
+                      <div
+                        style="
+                          line-height:1.7;
+                          white-space:pre-wrap
+                        "
+                      >
+                        ${esc(
+                          lesson.content ||
+                          "No detailed content provided for this lesson."
+                        )}
+                      </div>
+                    `;
+                  }
+
+                  return `
+                    ${
+                      structure.intro
+                        ? `
+                          <div
+                            style="
+                              line-height:1.7;
+                              white-space:pre-wrap;
+                              margin-bottom:18px
+                            "
+                          >
+                            ${esc(
+                              structure.intro
+                            )}
+                          </div>
+                        `
+                        : ""
+                    }
+
+                    ${
+                      structure.children.length
+                        ? structureDisplayNodes(
+                            structure.children
+                          )
+                        : `
+                          <div class="empty">
+                            No topics or additional lesson content have been added yet.
+                          </div>
+                        `
+                    }
+                  `;
+                })()
+              }
 
             `
 
@@ -3904,6 +5103,15 @@ async function openLesson(id){
                   canEditLessons()
 
                     ? `
+                      <button
+                        class="btn purple"
+                        onclick="openLessonStructureManager(
+                          ${JSON.stringify(lesson.id)}
+                        )"
+                      >
+                        📚 Topics & Content
+                      </button>
+
                       <button
                         class="btn warn"
                         onclick="editLesson(
@@ -5683,9 +6891,27 @@ function openLessonModal(
       <textarea
         id="LESSON_CONTENT"
       >${esc(
-        lesson?.content ||
+        parseLessonStructure(
+          lesson?.content
+        )?.intro ??
+        lesson?.content ??
         ""
       )}</textarea>
+
+      ${
+        editId
+          ? `
+            <div
+              class="notice"
+              style="margin-top:10px"
+            >
+              This field is the lesson introduction/overview.
+              Use <strong>Topics & Content</strong> after saving to add
+              topics, subtopics, videos and other child content.
+            </div>
+          `
+          : ""
+      }
 
 
       <div
@@ -5807,10 +7033,27 @@ async function saveLesson(
       ),
 
     content:
-      $("LESSON_CONTENT")
-        ?.value
-        .trim() ||
-      ""
+      (() => {
+        const entered =
+          $("LESSON_CONTENT")
+            ?.value
+            .trim() ||
+          "";
+
+        const existingStructure =
+          editId
+            ? parseLessonStructure(
+                lesson?.content
+              )
+            : null;
+
+        return existingStructure
+          ? serializeLessonStructure({
+              ...existingStructure,
+              intro:entered
+            })
+          : entered;
+      })()
 
   };
 
@@ -5930,36 +7173,6 @@ async function deleteLessonPrompt(
    USER MANAGEMENT
 ========================================================= */
 async function openUserManagementModal(){
-  if(!canManageUsers()){
-    toast( "Only administrators can manage accounts.", "err" );
-    return;
-  }
-  const profiles = await safeSelect( "profiles" );
-  
-  openModalContent(`
-    <div style="margin-bottom: 20px;">
-      <h3>👥 User Account & Role Management</h3>
-      <p style="font-size: 0.9rem; color: #666;">Full administrator control over user roles, account status and lesson access.</p>
-      
-      <!-- COMBINED BUTTON WITH EMBEDDED PROMPT -->
-      <button onclick="(async () => {
-        const email = prompt('Enter participant email:');
-        if (!email) return;
-        const name = prompt('Enter participant name:');
-        if (!name) return;
-        const role = prompt('Enter role (STUDENT, TUTOR, or ADMIN):', 'STUDENT');
-        if (!role) return;
-        await addParticipant(email, name, role);
-      })()" style="background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;">
-        + Add New Participant
-      </button>
-    </div>
-
-    ${ profiles.length ? profiles.map( p => `...` ).join("") : `No user profiles found.` }
-  `);
-}
-  
-  async function openUserManagementModal(){
 
   if(!canManageUsers()){
 
@@ -7919,39 +9132,5 @@ function initWhiteboard(){
    START APPLICATION
 ========================================================= */
 
-</script>
-<script>
-  document.addEventListener('click', async function (event) {
-    const target = event.target;
-    
-    // Check if the clicked element is an Edit, View, or Delete button/icon
-    const actionType = target.dataset.action || target.innerText.trim().toLowerCase();
-    const rowId = target.dataset.id || target.closest('tr')?.dataset.id;
-    const tableName = target.dataset.table || 'app_classes'; // Change default table if needed
-
-    if (!rowId) return; // Exit if no record ID is tied to the row
-
-    if (actionType.includes('delete')) {
-      if (confirm('Are you sure you want to delete this item?')) {
-        const { error } = await sb.from(tableName).delete().eq('id', rowId);
-        if (error) alert('Delete failed: ' + error.message);
-        else location.reload();
-      }
-    } 
-    else if (actionType.includes('edit')) {
-      const newValue = prompt('Enter new name/title:');
-      if (newValue) {
-        const { error } = await sb.from(tableName).update({ name: newValue }).eq('id', rowId);
-        if (error) alert('Update failed: ' + error.message);
-        else location.reload();
-      }
-    }
-    else if (actionType.includes('view')) {
-      const { data, error } = await sb.from(tableName).select('*').eq('id', rowId).single();
-      if (error) alert('Could not fetch details: ' + error.message);
-      else alert(JSON.stringify(data, null, 2));
-    }
-  });
-</script>
-</body>
+</script></body>
 </html>
