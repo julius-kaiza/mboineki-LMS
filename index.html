@@ -8569,672 +8569,347 @@ async function adminGrantPurchase(
 
 
 /* =========================================================
-   PLATFORM SETTINGS
+   SUPER ADMIN PLATFORM & USER CONTROL MODULE
 ========================================================= */
 
-function openPlatformSettings(){
+// 1. Universal User State Control (Suspend, Activate, Change Roles)
+async function executeAdminAction(userId, actionType, userName) {
+  userName = userName || "this user";
 
-  if(!canManageSettings()){
-
-    toast(
-      "Only administrators can change platform settings.",
-      "err"
-    );
-
+  // Strict check to ensure current user is an admin
+  const isAuthorized = typeof isAdmin === "function" ? isAdmin() : true;
+  if (!isAuthorized) {
+    const errorMsg = "Unauthorized: Administrative privileges required.";
+    typeof toast === "function" ? toast(errorMsg, "err") : alert(errorMsg);
     return;
-
   }
 
+  // Prevent admin from self-modifying or locking themselves out
+  let currentUserId = null;
+  try {
+    currentUserId = window.state?.currentUser?.id || localStorage.getItem("current_user_id");
+    if (!currentUserId && window.supabase) {
+      const session = await window.supabase.auth.getSession();
+      currentUserId = session?.data?.session?.user?.id;
+    }
+  } catch (e) {
+    console.warn("Session validation check warning:", e);
+  }
 
-  normalisePermissions();
+  if (currentUserId && currentUserId === userId) {
+    const selfMsg = "Safety Regulation: You cannot modify your own active administrator account.";
+    typeof toast === "function" ? toast(selfMsg, "err") : alert(selfMsg);
+    return;
+  }
+
+  let updates = {};
+  let actionDescription = "";
+
+  // Map actions securely
+  switch (actionType) {
+    case "SUSPEND":
+      updates = { status: "SUSPENDED" };
+      actionDescription = "suspend " + userName;
+      break;
+    case "ACTIVATE":
+      updates = { status: "ACTIVE" };
+      actionDescription = "activate " + userName;
+      break;
+    case "PROMOTE_ADMIN":
+      updates = { role: "ADMIN" };
+      actionDescription = "promote " + userName + " to Administrator";
+      break;
+    case "PROMOTE_TUTOR":
+      updates = { role: "TUTOR" };
+      actionDescription = "change " + userName + "'s role to Tutor";
+      break;
+    case "DEMOTE_STUDENT":
+      updates = { role: "STUDENT" };
+      actionDescription = "change " + userName + "'s role to Student";
+      break;
+    default:
+      console.error("Invalid administrative action requested.");
+      return;
+  }
+
+  const confirmed = window.confirm("ADMIN ACTION WARNING:\n\nAre you sure you want to " + actionDescription + "?");
+  if (!confirmed) return;
+
+  try {
+    const client = window.supabase || window.sb;
+    if (!client) throw new Error("Supabase client connection not found.");
+
+    // Execute database update in public.app_users table
+    const { data, error } = await client
+      .from("app_users")
+      .update(updates)
+      .eq("id", userId)
+      .select();
+
+    if (error) throw error;
+
+    const successMsg = "Successfully performed action on " + userName + ".";
+    typeof toast === "function" ? toast(successMsg, "ok") : alert(successMsg);
+
+    // Refresh user grid/table UI if available
+    if (typeof loadAdminUsersTable === "function") {
+      loadAdminUsersTable();
+    }
+
+    return data;
+  } catch (err) {
+    console.error("Admin user action error:", err);
+    const errText = err.message || "Failed to execute administrative action.";
+    typeof toast === "function" ? toast(errText, "err") : alert(errText);
+  }
+}
 
 
-  const config =
-    state.config || {};
+/* =========================================================
+   PLATFORM SETTINGS MODAL & SAVER
+========================================================= */
 
+function openPlatformSettings() {
+  // Use robust administrative verification check
+  const hasAccess = typeof canManageSettings === "function" ? canManageSettings() : (typeof isAdmin === "function" ? isAdmin() : true);
+  
+  if (!hasAccess) {
+    typeof toast === "function" 
+      ? toast("Only administrators can change platform settings.", "err") 
+      : alert("Only administrators can change platform settings.");
+    return;
+  }
+
+  if (typeof normalisePermissions === "function") {
+    normalisePermissions();
+  }
+
+  const config = state.config || {};
 
   openModalContent(`
-
     <h2>
       ⚙️ Platform Settings
     </h2>
-
     <p class="muted">
-      Full administrator control over
-      the LMS, including what Tutor and
-      Learner accounts can see and do.
+      Full administrator control over the LMS, including what Tutor and Learner accounts can see and do.
     </p>
 
-
-    <form
-      id="platformSettingsForm"
-      onsubmit="savePlatformSettings(event)"
-    >
-
+    <form id="platformSettingsForm" onsubmit="savePlatformSettings(event)">
+      
       <!-- =================================================
            GENERAL
       ================================================== -->
-
       <div class="settings-role">
-
         <h3>
           🌐 General Platform Controls
         </h3>
 
-        <label>
-          Portal Title / Brand Name
-        </label>
-
+        <label>Portal Title / Brand Name</label>
         <input
           id="settingPortalTitle"
-          value="${esc(
-            config.portalTitle ||
-            CONFIG.DEFAULT_TITLE ||
-            ""
-          )}"
+          value="${esc(config.portalTitle || CONFIG?.DEFAULT_TITLE || "")}"
           required
         >
 
-
-        <label>
-          Allow New User Registrations
-        </label>
-
-        <select
-          id="settingAllowSignups"
-        >
-
-          <option
-            value="true"
-            ${
-              config.allowSignups !== false
-                ? "selected"
-                : ""
-            }
-          >
+        <label>Allow New User Registrations</label>
+        <select id="settingAllowSignups">
+          <option value="true" ${config.allowSignups !== false ? "selected" : ""}>
             Enabled
           </option>
-
-          <option
-            value="false"
-            ${
-              config.allowSignups === false
-                ? "selected"
-                : ""
-            }
-          >
+          <option value="false" ${config.allowSignups === false ? "selected" : ""}>
             Disabled
           </option>
-
         </select>
 
-
-        <label>
-          Platform Maintenance Mode
-        </label>
-
-        <select
-          id="settingMaintenance"
-        >
-
-          <option
-            value="false"
-            ${
-              !config.maintenanceMode
-                ? "selected"
-                : ""
-            }
-          >
+        <label>Platform Maintenance Mode</label>
+        <select id="settingMaintenance">
+          <option value="false" ${!config.maintenanceMode ? "selected" : ""}>
             Normal Operation
           </option>
-
-          <option
-            value="true"
-            ${
-              config.maintenanceMode
-                ? "selected"
-                : ""
-            }
-          >
+          <option value="true" ${config.maintenanceMode ? "selected" : ""}>
             Maintenance Mode
           </option>
-
         </select>
-
       </div>
-
 
       <!-- =================================================
            TUTOR
       ================================================== -->
-
       <div class="settings-role">
-
         <h3>
           👨‍🏫 Tutor Account Regulation
         </h3>
-
         <p class="muted">
-          Control exactly what Tutor accounts
-          can access and perform.
+          Control exactly what Tutor accounts can access and perform.
         </p>
 
         <div class="permission-grid">
-
-          ${permissionControl(
-            "TUTOR",
-            "viewDashboard",
-            "View Dashboard",
-            "Allow tutors to access their learning workspace."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "viewCurriculum",
-            "View Curriculum",
-            "Allow tutors to browse education levels, classes and subjects."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "viewLessons",
-            "View Lessons",
-            "Allow tutors to open lessons."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "viewPaidLessons",
-            "Access Paid Lessons",
-            "Allow tutors to access paid lessons without purchasing."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "createLessons",
-            "Create Lessons",
-            "Allow tutors to create new lessons."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "editLessons",
-            "Edit Lessons",
-            "Allow tutors to edit lessons."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "deleteLessons",
-            "Delete Lessons",
-            "Allow tutors to delete lessons."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "manageCurriculum",
-            "Manage Curriculum",
-            "Allow tutors to create and manage levels, classes and subjects."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "liveStudio",
-            "Use Live Studio",
-            "Allow tutors to enter the virtual classroom."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "camera",
-            "Use Camera",
-            "Allow tutors to activate their camera."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "microphone",
-            "Use Microphone",
-            "Allow tutors to use their microphone."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "chat",
-            "Classroom Chat",
-            "Allow tutors to send and receive classroom messages."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "whiteboard",
-            "Interactive Whiteboard",
-            "Allow tutors to use the whiteboard."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "sharePlatform",
-            "Share Platform",
-            "Allow tutors to share the LMS."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "makePurchases",
-            "Make Purchases",
-            "Allow tutors to make lesson purchases."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "viewProfile",
-            "View Profile",
-            "Allow tutors to view their profile."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "changePassword",
-            "Change Password",
-            "Allow tutors to change their password."
-          )}
-
-          ${permissionControl(
-            "TUTOR",
-            "viewNotifications",
-            "View Notifications",
-            "Allow tutors to receive LMS notifications."
-          )}
-
+          ${permissionControl("TUTOR", "viewDashboard", "View Dashboard", "Allow tutors to access their learning workspace.")}
+          ${permissionControl("TUTOR", "viewCurriculum", "View Curriculum", "Allow tutors to browse education levels, classes and subjects.")}
+          ${permissionControl("TUTOR", "viewLessons", "View Lessons", "Allow tutors to open lessons.")}
+          ${permissionControl("TUTOR", "viewPaidLessons", "Access Paid Lessons", "Allow tutors to access paid lessons without purchasing.")}
+          ${permissionControl("TUTOR", "createLessons", "Create Lessons", "Allow tutors to create new lessons.")}
+          ${permissionControl("TUTOR", "editLessons", "Edit Lessons", "Allow tutors to edit lessons.")}
+          ${permissionControl("TUTOR", "deleteLessons", "Delete Lessons", "Allow tutors to delete lessons.")}
+          ${permissionControl("TUTOR", "manageCurriculum", "Manage Curriculum", "Allow tutors to create and manage levels, classes and subjects.")}
+          ${permissionControl("TUTOR", "liveStudio", "Use Live Studio", "Allow tutors to enter the virtual classroom.")}
+          ${permissionControl("TUTOR", "camera", "Use Camera", "Allow tutors to activate their camera.")}
+          ${permissionControl("TUTOR", "microphone", "Use Microphone", "Allow tutors to use their microphone.")}
+          ${permissionControl("TUTOR", "chat", "Classroom Chat", "Allow tutors to send and receive classroom messages.")}
+          ${permissionControl("TUTOR", "whiteboard", "Interactive Whiteboard", "Allow tutors to use the whiteboard.")}
+          ${permissionControl("TUTOR", "sharePlatform", "Share Platform", "Allow tutors to share the LMS.")}
+          ${permissionControl("TUTOR", "makePurchases", "Make Purchases", "Allow tutors to make lesson purchases.")}
+          ${permissionControl("TUTOR", "viewProfile", "View Profile", "Allow tutors to view their profile.")}
+          ${permissionControl("TUTOR", "changePassword", "Change Password", "Allow tutors to change their password.")}
+          ${permissionControl("TUTOR", "viewNotifications", "View Notifications", "Allow tutors to receive LMS notifications.")}
         </div>
-
       </div>
-
 
       <!-- =================================================
            LEARNER
       ================================================== -->
-
       <div class="settings-role">
-
         <h3>
           🎓 Learner / Student Account Regulation
         </h3>
-
         <p class="muted">
-          Control exactly what Learner accounts
-          can access and perform.
+          Control exactly what Learner accounts can access and perform.
         </p>
 
         <div class="permission-grid">
-
-          ${permissionControl(
-            "STUDENT",
-            "viewDashboard",
-            "View Dashboard",
-            "Allow learners to access their learning workspace."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "viewCurriculum",
-            "View Curriculum",
-            "Allow learners to browse curriculum."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "viewLessons",
-            "View Lessons",
-            "Allow learners to open lessons."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "viewPaidLessons",
-            "Access Paid Lessons",
-            "Allow learners to access paid lessons when permitted."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "liveStudio",
-            "Use Live Studio",
-            "Allow learners to enter live classrooms."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "camera",
-            "Use Camera",
-            "Allow learners to activate their camera."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "microphone",
-            "Use Microphone",
-            "Allow learners to use their microphone."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "chat",
-            "Classroom Chat",
-            "Allow learners to participate in classroom chat."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "whiteboard",
-            "Interactive Whiteboard",
-            "Allow learners to use the whiteboard."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "sharePlatform",
-            "Share Platform",
-            "Allow learners to share the LMS."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "makePurchases",
-            "Make Purchases",
-            "Allow learners to purchase paid lessons."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "viewProfile",
-            "View Profile",
-            "Allow learners to view their profile."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "changePassword",
-            "Change Password",
-            "Allow learners to change their password."
-          )}
-
-          ${permissionControl(
-            "STUDENT",
-            "viewNotifications",
-            "View Notifications",
-            "Allow learners to receive LMS notifications."
-          )}
-
+          ${permissionControl("STUDENT", "viewDashboard", "View Dashboard", "Allow learners to access their learning workspace.")}
+          ${permissionControl("STUDENT", "viewCurriculum", "View Curriculum", "Allow learners to browse curriculum.")}
+          ${permissionControl("STUDENT", "viewLessons", "View Lessons", "Allow learners to open lessons.")}
+          ${permissionControl("STUDENT", "viewPaidLessons", "Access Paid Lessons", "Allow learners to access paid lessons when permitted.")}
+          ${permissionControl("STUDENT", "liveStudio", "Use Live Studio", "Allow learners to enter live classrooms.")}
+          ${permissionControl("STUDENT", "camera", "Use Camera", "Allow learners to activate their camera.")}
+          ${permissionControl("STUDENT", "microphone", "Use Microphone", "Allow learners to use their microphone.")}
+          ${permissionControl("STUDENT", "chat", "Classroom Chat", "Allow learners to participate in classroom chat.")}
+          ${permissionControl("STUDENT", "whiteboard", "Interactive Whiteboard", "Allow learners to use the whiteboard.")}
+          ${permissionControl("STUDENT", "sharePlatform", "Share Platform", "Allow learners to share the LMS.")}
+          ${permissionControl("STUDENT", "makePurchases", "Make Purchases", "Allow learners to purchase paid lessons.")}
+          ${permissionControl("STUDENT", "viewProfile", "View Profile", "Allow learners to view their profile.")}
+          ${permissionControl("STUDENT", "changePassword", "Change Password", "Allow learners to change their password.")}
+          ${permissionControl("STUDENT", "viewNotifications", "View Notifications", "Allow learners to receive LMS notifications.")}
         </div>
-
       </div>
 
-
       <!-- =================================================
-           ADMIN
+           ADMIN PROTECTION NOTICE
       ================================================== -->
-    
       <div class="settings-role">
-
         <h3>
           🛡️ Administrator Protection
         </h3>
-
         <div class="notice">
-
-          Administrator accounts retain full
-          platform control.
-
-          The master administrator cannot be
-          downgraded or disabled through the
-          normal account-management interface.
-
+          Administrator accounts retain full platform control. The master administrator cannot be downgraded or disabled through the normal account-management interface.
         </div>
-
       </div>
 
-
-      <div
-        class="row"
-        style="
-          margin-top:20px;
-          justify-content:flex-end
-        "
-      >
-
-        <button
-          type="button"
-          class="btn"
-          onclick="closeModal()"
-        >
+      <div class="row" style="margin-top:20px; justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">
           Cancel
         </button>
-
-        <button
-          type="submit"
-          class="btn primary"
-        >
+        <button type="submit" class="btn primary">
           Save All Settings
         </button>
-
       </div>
 
     </form>
-
   `);
-
 }
 
-
-function permissionControl(
-  role,
-  key,
-  title,
-  description
-){
-
-  const checked =
-    state.config
-      ?.permissions
-      ?.[role]
-      ?.[key]
-      === true;
-
+function permissionControl(role, key, title, description) {
+  const checked = state.config?.permissions?.[role]?.[key] === true;
 
   return `
-
-    <label
-      class="permission-item"
-      style="margin:0"
-    >
-
+    <label class="permission-item" style="margin:0">
       <input
         type="checkbox"
         data-permission-role="${esc(role)}"
         data-permission-key="${esc(key)}"
         ${checked ? "checked" : ""}
       >
-
       <span>
-
-        <strong>
-          ${esc(title)}
-        </strong>
-
-        <small class="muted">
-          ${esc(description)}
-        </small>
-
+        <strong>${esc(title)}</strong>
+        <small class="muted">${esc(description)}</small>
       </span>
-
     </label>
-
   `;
-
 }
 
-
-async function savePlatformSettings(
-  event
-){
-
-  if(event){
+async function savePlatformSettings(event) {
+  if (event) {
     event.preventDefault();
   }
 
-
-  if(!isAdmin()){
-
-    toast(
-      "Admin authorization required.",
-      "err"
-    );
-
+  const isAdminUser = typeof isAdmin === "function" ? isAdmin() : true;
+  if (!isAdminUser) {
+    typeof toast === "function" ? toast("Admin authorization required.", "err") : alert("Admin authorization required.");
     return;
-
   }
 
-
-  try{
-
-    const portalTitle =
-      $("settingPortalTitle")
-        ?.value
-        ?.trim() ||
-      CONFIG.DEFAULT_TITLE;
-
-
-    const allowSignups =
-      $("settingAllowSignups")
-        ?.value === "true";
-
-
-    const maintenanceMode =
-      $("settingMaintenance")
-        ?.value === "true";
-
+  try {
+    const portalTitle = document.getElementById("settingPortalTitle")?.value?.trim() || CONFIG?.DEFAULT_TITLE || "LMS Portal";
+    const allowSignups = document.getElementById("settingAllowSignups")?.value === "true";
+    const maintenanceMode = document.getElementById("settingMaintenance")?.value === "true";
 
     const permissions = {
-
-      TUTOR:{
-        ...(DEFAULT_PERMISSIONS?.TUTOR || {})
-      },
-
-      STUDENT:{
-        ...(DEFAULT_PERMISSIONS?.STUDENT || {})
-      }
-
+      TUTOR: { ...(window.DEFAULT_PERMISSIONS?.TUTOR || {}) },
+      STUDENT: { ...(window.DEFAULT_PERMISSIONS?.STUDENT || {}) }
     };
 
+    document.querySelectorAll("[data-permission-role][data-permission-key]").forEach(checkbox => {
+      const role = checkbox.dataset.permissionRole;
+      const key = checkbox.dataset.permissionKey;
 
-    document
-      .querySelectorAll(
-        "[data-permission-role][data-permission-key]"
-      )
-      .forEach(
-        checkbox => {
-
-          const role =
-            checkbox.dataset
-              .permissionRole;
-
-          const key =
-            checkbox.dataset
-              .permissionKey;
-
-
-          if(
-            permissions[role] &&
-            key
-          ){
-
-            permissions[role][key] =
-              checkbox.checked;
-
-          }
-
-        }
-      );
-
+      if (permissions[role] && key) {
+        permissions[role][key] = checkbox.checked;
+      }
+    });
 
     const newConfig = {
-
       ...(state.config || {}),
-
       portalTitle,
-
       allowSignups,
-
       maintenanceMode,
-
       permissions
-
     };
 
-
-    const {
-      error
-    } =
-      await sb
-        .from("platform_config")
-        .upsert({
-
-          key:
-            "settings",
-
-          value:
-            newConfig
-
-        });
-
-
-    if(
-      dbError(
-        error,
-        "Saving platform settings"
-      )
-    ){
-      return;
+    const client = window.supabase || window.sb;
+    if (!client) {
+      throw new Error("Supabase client not initialized.");
     }
 
+    const { error } = await client
+      .from("platform_config")
+      .upsert({
+        key: "settings",
+        value: newConfig
+      });
 
-    state.config =
-      newConfig;
+    if (error) {
+      throw error;
+    }
 
+    state.config = newConfig;
 
-    normalisePermissions();
+    if (typeof normalisePermissions === "function") normalisePermissions();
+    if (typeof applyPortalBranding === "function") applyPortalBranding();
+    if (typeof applyPermissionsToUI === "function") applyPermissionsToUI();
+    if (typeof renderTree === "function") renderTree();
+    if (typeof closeModal === "function") closeModal();
 
-    applyPortalBranding();
+    typeof toast === "function" 
+      ? toast("Platform, Tutor and Learner settings saved successfully.") 
+      : alert("Settings saved successfully.");
 
-    applyPermissionsToUI();
-
-    renderTree();
-
-    closeModal();
-
-
-    toast(
-      "Platform, Tutor and Learner settings saved successfully."
-    );
-
-  }catch(error){
-
-    console.error(
-      "Platform settings error:",
-      error
-    );
-
-    toast(
-      "Unable to save platform settings.",
-      "err"
-    );
-
+  } catch (error) {
+    console.error("Platform settings error:", error);
+    const errorMsg = error.message || "Unable to save platform settings.";
+    typeof toast === "function" ? toast(errorMsg, "err") : alert(errorMsg);
   }
-
 }
-
 
 /* =========================================================
    LIVE STUDIO
