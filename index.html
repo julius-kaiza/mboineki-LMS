@@ -1301,126 +1301,6 @@ function currentUserId(){
 /* =========================================================
    PERMISSION ENGINE
 ========================================================= */
-<!-- =========================================================
-    STANDALONE ADMIN USER MANAGEMENT MODULE
-========================================================= -->
-
-<!-- 1. UI Component: Action Buttons Template (Place inside your user list/table loop) -->
-<div class="admin-user-actions" style="display: flex; gap: 8px; align-items: center;" data-user-id="USER_UUID_HERE">
-  <span class="user-display-name">John Doe</span>
-  
-  <button 
-    type="button" 
-    class="btn sm warning" 
-    onclick="handleAdminUserAction('USER_UUID_HERE', 'SUSPEND', 'John Doe')"
-  >
-    Suspend
-  </button>
-
-  <button 
-    type="button" 
-    class="btn sm primary" 
-    onclick="handleAdminUserAction('USER_UUID_HERE', 'ACTIVATE', 'John Doe')"
-  >
-    Activate
-  </button>
-
-  <button 
-    type="button" 
-    class="btn sm secondary" 
-    onclick="handleAdminUserAction('USER_UUID_HERE', 'PROMOTE_TUTOR', 'John Doe')"
-  >
-    Make Tutor
-  </button>
-</div>
-
-<!-- 2. Core JavaScript Logic -->
-<script>
-async function handleAdminUserAction(userId, actionType, userName = "this user") {
-  // 1. Strict Security Check: Verify admin role
-  if (typeof isAdmin === "function" && !isAdmin()) {
-    if (typeof toast === "function") {
-      toast("Unauthorized: Administrative privileges required.", "err");
-    } else {
-      alert("Unauthorized: Administrative privileges required.");
-    }
-    return;
-  }
-
-  // 2. Self-Harm Protection: Prevent admin from suspending/demoting themselves
-  const currentUserId = state?.currentUser?.id || localStorage.getItem("current_user_id");
-  if (currentUserId && currentUserId === userId) {
-    const selfMsg = "Safety Regulation: You cannot modify your own active administrator account.";
-    typeof toast === "function" ? toast(selfMsg, "err") : alert(selfMsg);
-    return;
-  }
-
-  let updates = {};
-  let actionDescription = "";
-
-  // 3. Map action types to database updates
-  switch (actionType) {
-    case "SUSPEND":
-      updates = { status: "SUSPENDED" };
-      actionDescription = `suspend ${userName}`;
-      break;
-    case "ACTIVATE":
-      updates = { status: "ACTIVE" };
-      actionDescription = `activate ${userName}`;
-      break;
-    case "PROMOTE_TUTOR":
-      updates = { role: "TUTOR" };
-      actionDescription = `change ${userName}'s role to Tutor`;
-      break;
-    case "DEMOTE_STUDENT":
-      updates = { role: "STUDENT" };
-      actionDescription = `change ${userName}'s role to Student`;
-      break;
-    default:
-      console.error("Invalid administrative action requested.");
-      return;
-  }
-
-  // 4. Mandatory Regulatory Confirmation Prompt
-  const confirmed = window.confirm(`ADMIN ACTION WARNING:\n\nAre you sure you want to ${actionDescription}?`);
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-    const client = window.supabase || window.sb;
-    if (!client) {
-      throw new Error("Supabase database client not found.");
-    }
-
-    // 5. Execute database update via Supabase client
-    const { data, error } = await client
-      .from("app_users")
-      .update(updates)
-      .eq("id", userId)
-      .select();
-
-    if (error) {
-      throw error;
-    }
-
-    const successMsg = `Successfully performed action on ${userName}.`;
-    typeof toast === "function" ? toast(successMsg, "ok") : alert(successMsg);
-
-    // 6. Refresh admin table UI if a reload function exists
-    if (typeof loadAdminUsersTable === "function") {
-      loadAdminUsersTable();
-    }
-
-    return data;
-
-  } catch (err) {
-    console.error("Admin user regulation error:", err);
-    const errorMsg = err.message || "Failed to execute administrative action.";
-    typeof toast === "function" ? toast(errorMsg, "err") : alert(errorMsg);
-  }
-}
-</script>
 function permissionRole(){
 
   if(isAdmin()){
@@ -9095,6 +8975,127 @@ function openPlatformSettings(){
       <!-- =================================================
            ADMIN
       ================================================== -->
+      <!-- =========================================================
+    STANDALONE ADMIN USER MANAGEMENT MODULE
+========================================================= -->
+
+<!-- 1. UI Component: Action Buttons Template (Place inside your user list/table loop) -->
+<div class="admin-user-actions" style="display: flex; gap: 8px; align-items: center;" data-user-id="USER_UUID_HERE">
+  <span class="user-display-name">John Doe</span>
+  
+  <button 
+    type="button" 
+    class="btn sm warning" 
+    onclick="handleAdminUserAction('USER_UUID_HERE', 'SUSPEND', 'John Doe')"
+  >
+    Suspend
+  </button>
+
+  <button 
+    type="button" 
+    class="btn sm primary" 
+    onclick="handleAdminUserAction('USER_UUID_HERE', 'ACTIVATE', 'John Doe')"
+  >
+    Activate
+  </button>
+
+  <button 
+    type="button" 
+    class="btn sm secondary" 
+    onclick="handleAdminUserAction('USER_UUID_HERE', 'PROMOTE_TUTOR', 'John Doe')"
+  >
+    Make Tutor
+  </button>
+</div>
+
+<!-- 2. Core JavaScript Logic -->
+<script>
+async function handleAdminUserAction(userId, actionType, userName = "this user") {
+  // 1. Strict Security Check: Verify admin role
+  if (typeof isAdmin === "function" && !isAdmin()) {
+    if (typeof toast === "function") {
+      toast("Unauthorized: Administrative privileges required.", "err");
+    } else {
+      alert("Unauthorized: Administrative privileges required.");
+    }
+    return;
+  }
+
+  // 2. Self-Harm Protection: Prevent admin from suspending/demoting themselves
+  const currentUserId = state?.currentUser?.id || localStorage.getItem("current_user_id");
+  if (currentUserId && currentUserId === userId) {
+    const selfMsg = "Safety Regulation: You cannot modify your own active administrator account.";
+    typeof toast === "function" ? toast(selfMsg, "err") : alert(selfMsg);
+    return;
+  }
+
+  let updates = {};
+  let actionDescription = "";
+
+  // 3. Map action types to database updates
+  switch (actionType) {
+    case "SUSPEND":
+      updates = { status: "SUSPENDED" };
+      actionDescription = `suspend ${userName}`;
+      break;
+    case "ACTIVATE":
+      updates = { status: "ACTIVE" };
+      actionDescription = `activate ${userName}`;
+      break;
+    case "PROMOTE_TUTOR":
+      updates = { role: "TUTOR" };
+      actionDescription = `change ${userName}'s role to Tutor`;
+      break;
+    case "DEMOTE_STUDENT":
+      updates = { role: "STUDENT" };
+      actionDescription = `change ${userName}'s role to Student`;
+      break;
+    default:
+      console.error("Invalid administrative action requested.");
+      return;
+  }
+
+  // 4. Mandatory Regulatory Confirmation Prompt
+  const confirmed = window.confirm(`ADMIN ACTION WARNING:\n\nAre you sure you want to ${actionDescription}?`);
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const client = window.supabase || window.sb;
+    if (!client) {
+      throw new Error("Supabase database client not found.");
+    }
+
+    // 5. Execute database update via Supabase client
+    const { data, error } = await client
+      .from("app_users")
+      .update(updates)
+      .eq("id", userId)
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    const successMsg = `Successfully performed action on ${userName}.`;
+    typeof toast === "function" ? toast(successMsg, "ok") : alert(successMsg);
+
+    // 6. Refresh admin table UI if a reload function exists
+    if (typeof loadAdminUsersTable === "function") {
+      loadAdminUsersTable();
+    }
+
+    return data;
+
+  } catch (err) {
+    console.error("Admin user regulation error:", err);
+    const errorMsg = err.message || "Failed to execute administrative action.";
+    typeof toast === "function" ? toast(errorMsg, "err") : alert(errorMsg);
+  }
+}
+</script>
+
 
       <div class="settings-role">
 
