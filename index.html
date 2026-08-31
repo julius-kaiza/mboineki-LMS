@@ -10683,8 +10683,9 @@ window.updateManagerClassesDropdown =
 ========================================================= -->
 
 <script>
-async function handleAdminUserAction(userId, actionType, userName = "this user") {
-  // 1. Strict Security Check: Verify admin role safely
+async function handleAdminUserAction(userId, actionType, userName) {
+  userName = userName || "this user";
+
   if (typeof isAdmin === "function" && !isAdmin()) {
     if (typeof toast === "function") {
       toast("Unauthorized: Administrative privileges required.", "err");
@@ -10694,10 +10695,9 @@ async function handleAdminUserAction(userId, actionType, userName = "this user")
     return;
   }
 
-  // 2. Self-Harm Protection: Prevent admin from modifying themselves
   let currentUserId = null;
   try {
-    currentUserId = state?.currentUser?.id || localStorage.getItem("current_user_id");
+    currentUserId = window.state?.currentUser?.id || localStorage.getItem("current_user_id");
     if (!currentUserId && window.supabase) {
       const session = await window.supabase.auth.getSession();
       currentUserId = session?.data?.session?.user?.id;
@@ -10715,31 +10715,29 @@ async function handleAdminUserAction(userId, actionType, userName = "this user")
   let updates = {};
   let actionDescription = "";
 
-  // 3. Map action types to database updates
   switch (actionType) {
     case "SUSPEND":
       updates = { status: "SUSPENDED" };
-      actionDescription = `suspend ${userName}`;
+      actionDescription = "suspend " + userName;
       break;
     case "ACTIVATE":
       updates = { status: "ACTIVE" };
-      actionDescription = `activate ${userName}`;
+      actionDescription = "activate " + userName;
       break;
     case "PROMOTE_TUTOR":
       updates = { role: "TUTOR" };
-      actionDescription = `change ${userName}'s role to Tutor`;
+      actionDescription = "change " + userName + "'s role to Tutor";
       break;
     case "DEMOTE_STUDENT":
       updates = { role: "STUDENT" };
-      actionDescription = `change ${userName}'s role to Student`;
+      actionDescription = "change " + userName + "'s role to Student";
       break;
     default:
       console.error("Invalid administrative action requested.");
       return;
   }
 
-  // 4. Mandatory Regulatory Confirmation Prompt
-  const confirmed = window.confirm(`ADMIN ACTION WARNING:\n\nAre you sure you want to ${actionDescription}?`);
+  const confirmed = window.confirm("ADMIN ACTION WARNING:\n\nAre you sure you want to " + actionDescription + "?");
   if (!confirmed) {
     return;
   }
@@ -10750,7 +10748,6 @@ async function handleAdminUserAction(userId, actionType, userName = "this user")
       throw new Error("Supabase database client not found.");
     }
 
-    // 5. Execute database update via Supabase client
     const { data, error } = await client
       .from("app_users")
       .update(updates)
@@ -10761,10 +10758,9 @@ async function handleAdminUserAction(userId, actionType, userName = "this user")
       throw error;
     }
 
-    const successMsg = `Successfully performed action on ${userName}.`;
+    const successMsg = "Successfully performed action on " + userName + ".";
     typeof toast === "function" ? toast(successMsg, "ok") : alert(successMsg);
 
-    // 6. Refresh admin table UI if a reload function exists
     if (typeof loadAdminUsersTable === "function") {
       loadAdminUsersTable();
     }
@@ -10773,12 +10769,12 @@ async function handleAdminUserAction(userId, actionType, userName = "this user")
 
   } catch (err) {
     console.error("Admin user regulation error:", err);
-    const errorMsg = err.message || "Failed to execute administrative action. Check your RLS policies.";
+    const errorMsg = err.message || "Failed to execute administrative action.";
     typeof toast === "function" ? toast(errorMsg, "err") : alert(errorMsg);
   }
 }
 </script>
-  
+    
 /* =========================================================
    START APPLICATION
 ========================================================= */
