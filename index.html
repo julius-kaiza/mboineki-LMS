@@ -5462,9 +5462,7 @@ async function simulateSuccessfulPurchase(
 
 async function openManager(){
 
-  if(
-    !canManageCurriculum()
-  ){
+  if(!canManageCurriculum()){
 
     toast(
       "Curriculum management has been disabled for your account.",
@@ -5475,429 +5473,551 @@ async function openManager(){
 
   }
 
+  try{
 
-  const levelsData =
-    await safeSelect(
-      "app_levels"
-    );
+    const [
+      levelsDataRaw,
+      classesDataRaw,
+      subjectsDataRaw
+    ] = await Promise.all([
 
-  const classesData =
-    await safeSelect(
-      "app_classes"
-    );
+      safeSelect("app_levels"),
 
-  const subjectsData =
-    await safeSelect(
-      "app_subjects"
-    );
+      safeSelect("app_classes"),
 
+      safeSelect("app_subjects")
 
-  openModalContent(`
+    ]);
 
-    <h2>
-      ⚙️ Full Curriculum Management
-    </h2>
-    
-    <p class="muted">
-      Manage education levels, classes,
-      subjects and lessons.
-    </p>
+    const levelsData =
+      Array.isArray(levelsDataRaw)
+        ? levelsDataRaw
+        : [];
 
-    <div
-      class="grid3"
-      style="margin-top:15px"
-    >
+    const classesData =
+      Array.isArray(classesDataRaw)
+        ? classesDataRaw
+        : [];
 
-      <div class="card">
+    const subjectsData =
+      Array.isArray(subjectsDataRaw)
+        ? subjectsDataRaw
+        : [];
 
-        <h3>
-          Levels
-        </h3>
+    const levels =
+      Array.isArray(state.levels)
+        ? state.levels
+        : [];
 
-        <input
-          id="newLevelName"
-          placeholder="New level name"
-        >
+    openModalContent(`
 
-        <button
-          class="btn primary"
-          style="margin-top:8px;width:100%"
-          onclick="addLevel()"
-        >
-          + Add Level
-        </button>
+      <h2>
+        ⚙️ Full Curriculum Management
+      </h2>
 
-        <div
-          class="list"
-          style="
-            margin-top:10px;
-            max-height:180px;
-            overflow-y:auto;
-          "
-        >
+      <p class="muted">
+        Manage education levels, classes,
+        subjects and lessons.
+      </p>
 
-          ${levelsData.map(
-            l => `
-
-              <div
-                class="item"
-                style="padding:6px"
-              >
-
-                <span>
-                  ${esc(l.name)}
-                </span>
-
-                <div class="row">
-
-                  <button
-                    class="btn primary"
-                    style="
-                      padding:2px 6px;
-                      font-size:10px
-                    "
-                    onclick="viewLevelItem(
-                      ${JSON.stringify(l.name)}
-                    )"
-                  >
-                    View
-                  </button>
-
-                  ${
-                    isAdmin()
-
-                      ? `
-                        <button
-                          class="btn warn"
-                          style="
-                            padding:2px 6px;
-                            font-size:10px
-                          "
-                          onclick="editLevelPrompt(
-                            ${JSON.stringify(l.id)},
-                            ${JSON.stringify(l.name)}
-                          )"
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          class="btn danger"
-                          style="
-                            padding:2px 6px;
-                            font-size:10px
-                          "
-                          onclick="deleteLevel(
-                            ${JSON.stringify(l.id)}
-                          )"
-                        >
-                          Del
-                        </button>
-                      `
-
-                      : ""
-                  }
-
-                </div>
-
-              </div>
-
-            `
-          ).join("")}
-
-        </div>
-
-      </div>
-
-
-      <div class="card">
-
-        <h3>
-          Classes
-        </h3>
-
-        <select
-          id="targetLevelSelect"
-          style="margin-bottom:6px"
-        >
-
-          ${state.levels.map(
-            l =>
-              `<option value="${esc(l)}">
-                ${esc(l)}
-              </option>`
-          ).join("")}
-
-        </select>
-
-        <input
-          id="newClassName"
-          placeholder="New class name"
-        >
-
-        <button
-          class="btn primary"
-          style="margin-top:8px;width:100%"
-          onclick="addClass()"
-        >
-          + Add Class
-        </button>
-
-        <div
-          class="list"
-          style="
-            margin-top:10px;
-            max-height:180px;
-            overflow-y:auto;
-          "
-        >
-
-          ${classesData.map(
-            c => `
-
-              <div
-                class="item"
-                style="padding:6px"
-              >
-
-                <div>
-
-                  <strong>
-                    ${esc(c.class_name)}
-                  </strong>
-
-                  <br>
-
-                  <small class="muted">
-                    ${esc(c.level)}
-                  </small>
-
-                </div>
-
-                <div class="row">
-
-                  <button
-                    class="btn primary"
-                    style="
-                      padding:2px 6px;
-                      font-size:10px
-                    "
-                    onclick="viewClassItem(
-                      ${JSON.stringify(c.level)},
-                      ${JSON.stringify(c.class_name)}
-                    )"
-                  >
-                    View
-                  </button>
-
-                  ${
-                    isAdmin()
-
-                      ? `
-                        <button
-                          class="btn warn"
-                          style="
-                            padding:2px 6px;
-                            font-size:10px
-                          "
-                          onclick="editClassPrompt(
-                            ${JSON.stringify(c.id)},
-                            ${JSON.stringify(c.class_name)}
-                          )"
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          class="btn danger"
-                          style="
-                            padding:2px 6px;
-                            font-size:10px
-                          "
-                          onclick="deleteClass(
-                            ${JSON.stringify(c.id)}
-                          )"
-                        >
-                          Del
-                        </button>
-                      `
-
-                      : ""
-                  }
-
-                </div>
-
-              </div>
-
-            `
-          ).join("")}
-
-        </div>
-
-      </div>
-
-
-      <div class="card">
-
-        <h3>
-          Subjects
-        </h3>
-
-        <select
-          id="subLevelSelect"
-          style="margin-bottom:6px"
-          onchange="updateManagerClassesDropdown(this.value)"
-        >
-
-          ${state.levels.map(
-            l =>
-              `<option value="${esc(l)}">
-                ${esc(l)}
-              </option>`
-          ).join("")}
-
-        </select>
-
-        <select
-          id="subClassSelect"
-          style="margin-bottom:6px"
-        ></select>
-
-        <input
-          id="newSubjectName"
-          placeholder="New subject name"
-        >
-
-        <button
-          class="btn primary"
-          style="margin-top:8px;width:100%"
-          onclick="addSubject()"
-        >
-          + Add Subject
-        </button>
-
-        <div
-          class="list"
-          style="
-            margin-top:10px;
-            max-height:140px;
-            overflow-y:auto;
-          "
-        >
-
-          ${subjectsData.map(
-            s => `
-
-              <div
-                class="item"
-                style="padding:6px"
-              >
-
-                <div>
-
-                  <strong>
-                    ${esc(s.subject_name)}
-                  </strong>
-
-                  <br>
-
-                  <small class="muted">
-                    ${esc(s.level)}
-                    /
-                    ${esc(s.class_name)}
-                  </small>
-
-                </div>
-
-                <div class="row">
-
-                  <button
-                    class="btn primary"
-                    style="
-                      padding:2px 6px;
-                      font-size:10px
-                    "
-                    onclick="viewSubjectItem(
-                      ${JSON.stringify(s.level)},
-                      ${JSON.stringify(s.class_name)},
-                      ${JSON.stringify(s.subject_name)}
-                    )"
-                  >
-                    View
-                  </button>
-
-                  ${
-                    isAdmin()
-
-                      ? `
-                        <button
-                          class="btn warn"
-                          style="
-                            padding:2px 6px;
-                            font-size:10px
-                          "
-                          onclick="editSubjectPrompt(
-                            ${JSON.stringify(s.id)},
-                            ${JSON.stringify(s.subject_name)}
-                          )"
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          class="btn danger"
-                          style="
-                            padding:2px 6px;
-                            font-size:10px
-                          "
-                          onclick="deleteSubject(
-                            ${JSON.stringify(s.id)}
-                          )"
-                        >
-                          Del
-                        </button>
-                      `
-
-                      : ""
-                  }
-
-                </div>
-
-              </div>
-
-            `
-          ).join("")}
-
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <div
-      style="
-        text-align:right;
-        margin-top:20px
-      "
-    >
-
-      <button
-        class="btn"
-        onclick="closeModal();refreshData()"
+      <div
+        class="grid3"
+        style="margin-top:15px"
       >
-        Close & Refresh
-      </button>
 
-    </div>
+        <!-- =================================================
+             LEVELS
+        ================================================== -->
 
-  `);
+        <div class="card">
+
+          <h3>
+            Education Levels
+          </h3>
+
+          <input
+            id="newLevelName"
+            placeholder="New level name"
+            autocomplete="off"
+          >
+
+          <button
+            type="button"
+            class="btn primary"
+            style="margin-top:8px;width:100%"
+            onclick="addLevel()"
+          >
+            + Add Level
+          </button>
+
+          <div
+            class="list"
+            style="
+              margin-top:10px;
+              max-height:180px;
+              overflow-y:auto;
+            "
+          >
+
+            ${
+              levelsData.length
+
+                ? levelsData.map(
+                    l => `
+
+                      <div
+                        class="item"
+                        style="padding:6px"
+                      >
+
+                        <span>
+                          ${esc(l.name || "")}
+                        </span>
+
+                        <div class="row">
+
+                          <button
+                            type="button"
+                            class="btn primary"
+                            style="
+                              padding:2px 6px;
+                              font-size:10px
+                            "
+                            onclick="viewLevelItem(
+                              ${JSON.stringify(l.name || "")}
+                            )"
+                          >
+                            View
+                          </button>
+
+                          ${
+                            isAdmin()
+
+                              ? `
+
+                                <button
+                                  type="button"
+                                  class="btn warn"
+                                  style="
+                                    padding:2px 6px;
+                                    font-size:10px
+                                  "
+                                  onclick="editLevelPrompt(
+                                    ${JSON.stringify(l.id)},
+                                    ${JSON.stringify(l.name || "")}
+                                  )"
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  class="btn danger"
+                                  style="
+                                    padding:2px 6px;
+                                    font-size:10px
+                                  "
+                                  onclick="deleteLevel(
+                                    ${JSON.stringify(l.id)}
+                                  )"
+                                >
+                                  Del
+                                </button>
+
+                              `
+
+                              : ""
+                          }
+
+                        </div>
+
+                      </div>
+
+                    `
+                  ).join("")
+
+                : `
+                  <div class="empty">
+                    No education levels found.
+                  </div>
+                `
+            }
+
+          </div>
+
+        </div>
 
 
-  if(state.levels.length){
+        <!-- =================================================
+             CLASSES
+        ================================================== -->
 
-    updateManagerClassesDropdown(
-      state.levels[0]
+        <div class="card">
+
+          <h3>
+            Classes
+          </h3>
+
+          <select
+            id="targetLevelSelect"
+            style="margin-bottom:6px"
+          >
+
+            ${
+              levels.length
+
+                ? levels.map(
+                    l => `
+                      <option value="${esc(l)}">
+                        ${esc(l)}
+                      </option>
+                    `
+                  ).join("")
+
+                : `
+                  <option value="">
+                    No levels available
+                  </option>
+                `
+            }
+
+          </select>
+
+          <input
+            id="newClassName"
+            placeholder="New class name"
+            autocomplete="off"
+          >
+
+          <button
+            type="button"
+            class="btn primary"
+            style="margin-top:8px;width:100%"
+            onclick="addClass()"
+          >
+            + Add Class
+          </button>
+
+          <div
+            class="list"
+            style="
+              margin-top:10px;
+              max-height:180px;
+              overflow-y:auto;
+            "
+          >
+
+            ${
+              classesData.length
+
+                ? classesData.map(
+                    c => `
+
+                      <div
+                        class="item"
+                        style="padding:6px"
+                      >
+
+                        <div>
+
+                          <strong>
+                            ${esc(c.class_name || "")}
+                          </strong>
+
+                          <br>
+
+                          <small class="muted">
+                            ${esc(c.level || "")}
+                          </small>
+
+                        </div>
+
+                        <div class="row">
+
+                          <button
+                            type="button"
+                            class="btn primary"
+                            style="
+                              padding:2px 6px;
+                              font-size:10px
+                            "
+                            onclick="viewClassItem(
+                              ${JSON.stringify(c.level || "")},
+                              ${JSON.stringify(c.class_name || "")}
+                            )"
+                          >
+                            View
+                          </button>
+
+                          ${
+                            isAdmin()
+
+                              ? `
+
+                                <button
+                                  type="button"
+                                  class="btn warn"
+                                  style="
+                                    padding:2px 6px;
+                                    font-size:10px
+                                  "
+                                  onclick="editClassPrompt(
+                                    ${JSON.stringify(c.id)},
+                                    ${JSON.stringify(c.class_name || "")},
+                                    ${JSON.stringify(c.level || "")}
+                                  )"
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  class="btn danger"
+                                  style="
+                                    padding:2px 6px;
+                                    font-size:10px
+                                  "
+                                  onclick="deleteClass(
+                                    ${JSON.stringify(c.id)}
+                                  )"
+                                >
+                                  Del
+                                </button>
+
+                              `
+
+                              : ""
+                          }
+
+                        </div>
+
+                      </div>
+
+                    `
+                  ).join("")
+
+                : `
+                  <div class="empty">
+                    No classes found.
+                  </div>
+                `
+            }
+
+          </div>
+
+        </div>
+
+
+        <!-- =================================================
+             SUBJECTS
+        ================================================== -->
+
+        <div class="card">
+
+          <h3>
+            Subjects
+          </h3>
+
+          <select
+            id="subLevelSelect"
+            style="margin-bottom:6px"
+            onchange="updateManagerClassesDropdown(this.value)"
+          >
+
+            ${
+              levels.length
+
+                ? levels.map(
+                    l => `
+                      <option value="${esc(l)}">
+                        ${esc(l)}
+                      </option>
+                    `
+                  ).join("")
+
+                : `
+                  <option value="">
+                    No levels available
+                  </option>
+                `
+            }
+
+          </select>
+
+          <select
+            id="subClassSelect"
+            style="margin-bottom:6px"
+          ></select>
+
+          <input
+            id="newSubjectName"
+            placeholder="New subject name"
+            autocomplete="off"
+          >
+
+          <button
+            type="button"
+            class="btn primary"
+            style="margin-top:8px;width:100%"
+            onclick="addSubject()"
+          >
+            + Add Subject
+          </button>
+
+          <div
+            class="list"
+            style="
+              margin-top:10px;
+              max-height:140px;
+              overflow-y:auto;
+            "
+          >
+
+            ${
+              subjectsData.length
+
+                ? subjectsData.map(
+                    s => `
+
+                      <div
+                        class="item"
+                        style="padding:6px"
+                      >
+
+                        <div>
+
+                          <strong>
+                            ${esc(s.subject_name || "")}
+                          </strong>
+
+                          <br>
+
+                          <small class="muted">
+                            ${esc(s.level || "")}
+                            /
+                            ${esc(s.class_name || "")}
+                          </small>
+
+                        </div>
+
+                        <div class="row">
+
+                          <button
+                            type="button"
+                            class="btn primary"
+                            style="
+                              padding:2px 6px;
+                              font-size:10px
+                            "
+                            onclick="viewSubjectItem(
+                              ${JSON.stringify(s.level || "")},
+                              ${JSON.stringify(s.class_name || "")},
+                              ${JSON.stringify(s.subject_name || "")}
+                            )"
+                          >
+                            View
+                          </button>
+
+                          ${
+                            isAdmin()
+
+                              ? `
+
+                                <button
+                                  type="button"
+                                  class="btn warn"
+                                  style="
+                                    padding:2px 6px;
+                                    font-size:10px
+                                  "
+                                  onclick="editSubjectPrompt(
+                                    ${JSON.stringify(s.id)},
+                                    ${JSON.stringify(s.subject_name || "")},
+                                    ${JSON.stringify(s.level || "")},
+                                    ${JSON.stringify(s.class_name || "")}
+                                  )"
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  class="btn danger"
+                                  style="
+                                    padding:2px 6px;
+                                    font-size:10px
+                                  "
+                                  onclick="deleteSubject(
+                                    ${JSON.stringify(s.id)}
+                                  )"
+                                >
+                                  Del
+                                </button>
+
+                              `
+
+                              : ""
+                          }
+
+                        </div>
+
+                      </div>
+
+                    `
+                  ).join("")
+
+                : `
+                  <div class="empty">
+                    No subjects found.
+                  </div>
+                `
+            }
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div
+        style="
+          text-align:right;
+          margin-top:20px
+        "
+      >
+
+        <button
+          type="button"
+          class="btn"
+          onclick="closeModal();refreshData()"
+        >
+          Close & Refresh
+        </button>
+
+      </div>
+
+    `);
+
+
+    if(levels.length){
+
+      updateManagerClassesDropdown(
+        levels[0]
+      );
+
+    }
+
+  }catch(error){
+
+    console.error(
+      "Curriculum manager error:",
+      error
+    );
+
+    toast(
+      "Unable to open curriculum management.",
+      "err"
     );
 
   }
@@ -5905,15 +6025,17 @@ async function openManager(){
 }
 
 
-function viewLevelItem(
-  levelName
-){
+function viewLevelItem(levelName){
 
   closeModal();
 
-  filterByLevel(
-    levelName
-  );
+  if(typeof filterByLevel === "function"){
+
+    filterByLevel(
+      levelName
+    );
+
+  }
 
 }
 
@@ -5925,10 +6047,14 @@ function viewClassItem(
 
   closeModal();
 
-  filterByClass(
-    level,
-    className
-  );
+  if(typeof filterByClass === "function"){
+
+    filterByClass(
+      level,
+      className
+    );
+
+  }
 
 }
 
@@ -5941,11 +6067,15 @@ function viewSubjectItem(
 
   closeModal();
 
-  filterBySubject(
-    level,
-    className,
-    subjectName
-  );
+  if(typeof filterBySubject === "function"){
+
+    filterBySubject(
+      level,
+      className,
+      subjectName
+    );
+
+  }
 
 }
 
@@ -5964,16 +6094,29 @@ function updateManagerClassesDropdown(
 
 
   const classes =
-    state.classes[level] ||
-    [];
+    state.classes?.[level] || [];
+
+
+  if(!Array.isArray(classes) || !classes.length){
+
+    select.innerHTML = `
+      <option value="">
+        No classes available for this level
+      </option>
+    `;
+
+    return;
+
+  }
 
 
   select.innerHTML =
     classes.map(
-      c =>
-        `<option value="${esc(c)}">
+      c => `
+        <option value="${esc(c)}">
           ${esc(c)}
-        </option>`
+        </option>
+      `
     ).join("");
 
 }
@@ -5985,9 +6128,7 @@ function updateManagerClassesDropdown(
 
 async function addLevel(){
 
-  if(
-    !canManageCurriculum()
-  ){
+  if(!canManageCurriculum()){
 
     toast(
       "Curriculum management is disabled.",
@@ -6019,39 +6160,57 @@ async function addLevel(){
       "err"
     );
 
+    inputEl.focus();
+
     return;
 
   }
 
 
-  const {
-    error
-  } =
-    await sb
-      .from("app_levels")
-      .insert({
-        name
-      });
+  try{
+
+    const {
+      error
+    } =
+      await sb
+        .from("app_levels")
+        .insert({
+          name
+        });
 
 
-  if(
-    dbError(
-      error,
-      "Adding level"
-    )
-  ){
-    return;
+    if(
+      dbError(
+        error,
+        "Adding level"
+      )
+    ){
+      return;
+    }
+
+
+    toast(
+      "Level added successfully."
+    );
+
+
+    await loadDataFromCloud();
+
+    await openManager();
+
+  }catch(error){
+
+    console.error(
+      "Add level error:",
+      error
+    );
+
+    toast(
+      "Unable to add level.",
+      "err"
+    );
+
   }
-
-
-  toast(
-    "Level added successfully."
-  );
-
-
-  await loadDataFromCloud();
-
-  openManager();
 
 }
 
@@ -6061,7 +6220,10 @@ async function editLevelPrompt(
   oldName
 ){
 
-  if(!isAdmin() && !canManageCurriculum()){
+  if(
+    !isAdmin() &&
+    !canManageCurriculum()
+  ){
 
     toast(
       "Curriculum management is disabled.",
@@ -6081,8 +6243,7 @@ async function editLevelPrompt(
 
 
   if(
-    !newName ||
-    newName.trim() === oldName
+    newName === null
   ){
     return;
   }
@@ -6092,71 +6253,133 @@ async function editLevelPrompt(
     newName.trim();
 
 
-  const {
-    error
-  } =
-    await sb
-      .from("app_levels")
-      .update({
-        name:trimmed
-      })
-      .eq(
-        "id",
-        id
-      );
+  if(!trimmed){
+
+    toast(
+      "Level name cannot be empty.",
+      "err"
+    );
+
+    return;
+
+  }
 
 
   if(
-    dbError(
-      error,
-      "Updating level"
-    )
+    trimmed === oldName
   ){
     return;
   }
 
 
-  await sb
-    .from("app_classes")
-    .update({
-      level:trimmed
-    })
-    .eq(
-      "level",
-      oldName
+  try{
+
+    const {
+      error
+    } =
+      await sb
+        .from("app_levels")
+        .update({
+          name:trimmed
+        })
+        .eq(
+          "id",
+          id
+        );
+
+
+    if(
+      dbError(
+        error,
+        "Updating level"
+      )
+    ){
+      return;
+    }
+
+
+    /*
+      Update dependent records only for the
+      old level being renamed.
+    */
+
+    const dependentUpdates = [
+
+      sb
+        .from("app_classes")
+        .update({
+          level:trimmed
+        })
+        .eq(
+          "level",
+          oldName
+        ),
+
+      sb
+        .from("app_subjects")
+        .update({
+          level:trimmed
+        })
+        .eq(
+          "level",
+          oldName
+        ),
+
+      sb
+        .from("app_lessons")
+        .update({
+          level:trimmed
+        })
+        .eq(
+          "level",
+          oldName
+        )
+
+    ];
+
+
+    const results =
+      await Promise.all(
+        dependentUpdates
+      );
+
+
+    for(const result of results){
+
+      if(result.error){
+
+        console.warn(
+          "Dependent level update warning:",
+          result.error
+        );
+
+      }
+
+    }
+
+
+    toast(
+      "Level updated."
     );
 
 
-  await sb
-    .from("app_subjects")
-    .update({
-      level:trimmed
-    })
-    .eq(
-      "level",
-      oldName
+    await loadDataFromCloud();
+
+    await openManager();
+
+  }catch(error){
+
+    console.error(
+      "Edit level error:",
+      error
     );
 
-
-  await sb
-    .from("app_lessons")
-    .update({
-      level:trimmed
-    })
-    .eq(
-      "level",
-      oldName
+    toast(
+      "Unable to update level.",
+      "err"
     );
 
-
-  toast(
-    "Level updated."
-  );
-
-
-  await loadDataFromCloud();
-
-  openManager();
+  }
 
 }
 
@@ -6165,9 +6388,7 @@ async function deleteLevel(
   id
 ){
 
-  if(
-    !isAdmin()
-  ){
+  if(!isAdmin()){
 
     toast(
       "Only administrators can delete education levels.",
@@ -6180,31 +6401,32 @@ async function deleteLevel(
 
 
   if(
-    confirm(
-      "Delete this level? Associated classes, subjects and lessons may be affected."
+    !confirm(
+      "Delete this level?\n\nAssociated classes, subjects and lessons may also be affected."
     )
   ){
-
-    const success =
-      await deleteRow(
-        "app_levels",
-        "id",
-        id,
-        "Deleting level"
-      );
+    return;
+  }
 
 
-    if(success){
+  const success =
+    await deleteRow(
+      "app_levels",
+      "id",
+      id,
+      "Deleting level"
+    );
 
-      toast(
-        "Level deleted."
-      );
 
-      await loadDataFromCloud();
+  if(success){
 
-      openManager();
+    toast(
+      "Level deleted."
+    );
 
-    }
+    await loadDataFromCloud();
+
+    await openManager();
 
   }
 
@@ -6217,9 +6439,7 @@ async function deleteLevel(
 
 async function addClass(){
 
-  if(
-    !canManageCurriculum()
-  ){
+  if(!canManageCurriculum()){
 
     toast(
       "Curriculum management is disabled.",
@@ -6247,7 +6467,7 @@ async function addClass(){
 
 
   const level =
-    levelSelect.value;
+    levelSelect.value.trim();
 
   const className =
     nameInput.value.trim();
@@ -6268,42 +6488,63 @@ async function addClass(){
   }
 
 
-  const {
-    error
-  } =
-    await sb
-      .from("app_classes")
-      .insert({
-        level,
-        class_name:className
-      });
+  try{
+
+    const {
+      error
+    } =
+      await sb
+        .from("app_classes")
+        .insert({
+
+          level,
+
+          class_name:
+            className
+
+        });
 
 
-  if(
-    dbError(
-      error,
-      "Adding class"
-    )
-  ){
-    return;
+    if(
+      dbError(
+        error,
+        "Adding class"
+      )
+    ){
+      return;
+    }
+
+
+    toast(
+      "Class added successfully."
+    );
+
+
+    await loadDataFromCloud();
+
+    await openManager();
+
+  }catch(error){
+
+    console.error(
+      "Add class error:",
+      error
+    );
+
+    toast(
+      "Unable to add class.",
+      "err"
+    );
+
   }
-
-
-  toast(
-    "Class added successfully."
-  );
-
-
-  await loadDataFromCloud();
-
-  openManager();
 
 }
 
 
 async function editClassPrompt(
   id,
-  oldName
+  oldName,
+  oldLevel
 ){
 
   if(
@@ -6328,10 +6569,7 @@ async function editClassPrompt(
     );
 
 
-  if(
-    !newName ||
-    newName.trim() === oldName
-  ){
+  if(newName === null){
     return;
   }
 
@@ -6340,60 +6578,132 @@ async function editClassPrompt(
     newName.trim();
 
 
-  const {
-    error
-  } =
-    await sb
-      .from("app_classes")
-      .update({
-        class_name:trimmed
-      })
-      .eq(
-        "id",
-        id
-      );
+  if(!trimmed){
+
+    toast(
+      "Class name cannot be empty.",
+      "err"
+    );
+
+    return;
+
+  }
 
 
-  if(
-    dbError(
-      error,
-      "Updating class"
-    )
-  ){
+  if(trimmed === oldName){
     return;
   }
 
 
-  await sb
-    .from("app_subjects")
-    .update({
-      class_name:trimmed
-    })
-    .eq(
-      "class_name",
-      oldName
+  try{
+
+    const {
+      error
+    } =
+      await sb
+        .from("app_classes")
+        .update({
+          class_name:trimmed
+        })
+        .eq(
+          "id",
+          id
+        );
+
+
+    if(
+      dbError(
+        error,
+        "Updating class"
+      )
+    ){
+      return;
+    }
+
+
+    /*
+      IMPORTANT:
+      Only update subjects/lessons belonging
+      to the same level.
+
+      Previously every class with the same
+      name in every level could be renamed.
+    */
+
+    const subjectUpdate =
+      await sb
+        .from("app_subjects")
+        .update({
+          class_name:trimmed
+        })
+        .eq(
+          "class_name",
+          oldName
+        )
+        .eq(
+          "level",
+          oldLevel
+        );
+
+
+    if(subjectUpdate.error){
+
+      console.warn(
+        "Subject class update warning:",
+        subjectUpdate.error
+      );
+
+    }
+
+
+    const lessonUpdate =
+      await sb
+        .from("app_lessons")
+        .update({
+          class:trimmed
+        })
+        .eq(
+          "class",
+          oldName
+        )
+        .eq(
+          "level",
+          oldLevel
+        );
+
+
+    if(lessonUpdate.error){
+
+      console.warn(
+        "Lesson class update warning:",
+        lessonUpdate.error
+      );
+
+    }
+
+
+    toast(
+      "Class updated."
     );
 
 
-  await sb
-    .from("app_lessons")
-    .update({
-      class:trimmed
-    })
-    .eq(
-      "class",
-      oldName
+    await loadDataFromCloud();
+
+    await openManager();
+
+  }catch(error){
+
+    console.error(
+      "Edit class error:",
+      error
     );
 
+    toast(
+      "Unable to update class.",
+      "err"
+    );
 
-  toast(
-    "Class updated."
-  );
-
-
-  await loadDataFromCloud();
-
-  openManager();
+  }
 
 }
 
@@ -6415,31 +6725,32 @@ async function deleteClass(
 
 
   if(
-    confirm(
+    !confirm(
       "Delete this class?"
     )
   ){
-
-    const success =
-      await deleteRow(
-        "app_classes",
-        "id",
-        id,
-        "Deleting class"
-      );
+    return;
+  }
 
 
-    if(success){
+  const success =
+    await deleteRow(
+      "app_classes",
+      "id",
+      id,
+      "Deleting class"
+    );
 
-      toast(
-        "Class deleted."
-      );
 
-      await loadDataFromCloud();
+  if(success){
 
-      openManager();
+    toast(
+      "Class deleted."
+    );
 
-    }
+    await loadDataFromCloud();
+
+    await openManager();
 
   }
 
@@ -6452,9 +6763,7 @@ async function deleteClass(
 
 async function addSubject(){
 
-  if(
-    !canManageCurriculum()
-  ){
+  if(!canManageCurriculum()){
 
     toast(
       "Curriculum management is disabled.",
@@ -6486,10 +6795,10 @@ async function addSubject(){
 
 
   const level =
-    levelSelect.value;
+    levelSelect.value.trim();
 
   const className =
-    classSelect.value;
+    classSelect.value.trim();
 
   const subjectName =
     nameInput.value.trim();
@@ -6511,49 +6820,67 @@ async function addSubject(){
   }
 
 
-  const {
-    error
-  } =
-    await sb
-      .from("app_subjects")
-      .insert({
+  try{
 
-        level,
+    const {
+      error
+    } =
+      await sb
+        .from("app_subjects")
+        .insert({
 
-        class_name:
-          className,
+          level,
 
-        subject_name:
-          subjectName
+          class_name:
+            className,
 
-      });
+          subject_name:
+            subjectName
+
+        });
 
 
-  if(
-    dbError(
-      error,
-      "Adding subject"
-    )
-  ){
-    return;
+    if(
+      dbError(
+        error,
+        "Adding subject"
+      )
+    ){
+      return;
+    }
+
+
+    toast(
+      "Subject added successfully."
+    );
+
+
+    await loadDataFromCloud();
+
+    await openManager();
+
+  }catch(error){
+
+    console.error(
+      "Add subject error:",
+      error
+    );
+
+    toast(
+      "Unable to add subject.",
+      "err"
+    );
+
   }
-
-
-  toast(
-    "Subject added successfully."
-  );
-
-
-  await loadDataFromCloud();
-
-  openManager();
 
 }
 
 
 async function editSubjectPrompt(
   id,
-  oldName
+  oldName,
+  oldLevel,
+  oldClass
 ){
 
   if(
@@ -6578,10 +6905,7 @@ async function editSubjectPrompt(
     );
 
 
-  if(
-    !newName ||
-    newName.trim() === oldName
-  ){
+  if(newName === null){
     return;
   }
 
@@ -6590,49 +6914,107 @@ async function editSubjectPrompt(
     newName.trim();
 
 
-  const {
-    error
-  } =
-    await sb
-      .from("app_subjects")
-      .update({
-        subject_name:trimmed
-      })
-      .eq(
-        "id",
-        id
-      );
+  if(!trimmed){
+
+    toast(
+      "Subject name cannot be empty.",
+      "err"
+    );
+
+    return;
+
+  }
 
 
-  if(
-    dbError(
-      error,
-      "Updating subject"
-    )
-  ){
+  if(trimmed === oldName){
     return;
   }
 
 
-  await sb
-    .from("app_lessons")
-    .update({
-      subject:trimmed
-    })
-    .eq(
-      "subject",
-      oldName
+  try{
+
+    const {
+      error
+    } =
+      await sb
+        .from("app_subjects")
+        .update({
+          subject_name:trimmed
+        })
+        .eq(
+          "id",
+          id
+        );
+
+
+    if(
+      dbError(
+        error,
+        "Updating subject"
+      )
+    ){
+      return;
+
+    }
+
+
+    /*
+      Only update lessons belonging to the
+      same level/class/subject.
+    */
+
+    const lessonUpdate =
+      await sb
+        .from("app_lessons")
+        .update({
+          subject:trimmed
+        })
+        .eq(
+          "subject",
+          oldName
+        )
+        .eq(
+          "level",
+          oldLevel
+        )
+        .eq(
+          "class",
+          oldClass
+        );
+
+
+    if(lessonUpdate.error){
+
+      console.warn(
+        "Lesson subject update warning:",
+        lessonUpdate.error
+      );
+
+    }
+
+
+    toast(
+      "Subject updated."
     );
 
 
-  toast(
-    "Subject updated."
-  );
+    await loadDataFromCloud();
 
+    await openManager();
 
-  await loadDataFromCloud();
+  }catch(error){
 
-  openManager();
+    console.error(
+      "Edit subject error:",
+      error
+    );
+
+    toast(
+      "Unable to update subject.",
+      "err"
+    );
+
+  }
 
 }
 
@@ -6654,31 +7036,32 @@ async function deleteSubject(
 
 
   if(
-    confirm(
+    !confirm(
       "Delete this subject?"
     )
   ){
-
-    const success =
-      await deleteRow(
-        "app_subjects",
-        "id",
-        id,
-        "Deleting subject"
-      );
+    return;
+  }
 
 
-    if(success){
+  const success =
+    await deleteRow(
+      "app_subjects",
+      "id",
+      id,
+      "Deleting subject"
+    );
 
-      toast(
-        "Subject deleted."
-      );
 
-      await loadDataFromCloud();
+  if(success){
 
-      openManager();
+    toast(
+      "Subject deleted."
+    );
 
-    }
+    await loadDataFromCloud();
+
+    await openManager();
 
   }
 
@@ -6690,7 +7073,7 @@ async function deleteSubject(
 ========================================================= */
 
 function openLessonModal(
-  editId=null
+  editId = null
 ){
 
   if(
@@ -6725,10 +7108,68 @@ function openLessonModal(
 
   const lesson =
     editId
-      ? state.lessons.find(
-          l => l.id === editId
+      ? (
+          Array.isArray(state.lessons)
+            ? state.lessons.find(
+                l => String(l.id) === String(editId)
+              )
+            : null
         )
-      : {};
+      : null;
+
+
+  if(
+    editId &&
+    !lesson
+  ){
+
+    toast(
+      "Lesson could not be found.",
+      "err"
+    );
+
+    return;
+
+  }
+
+
+  let lessonContent = "";
+
+
+  if(lesson){
+
+    try{
+
+      const structure =
+        parseLessonStructure(
+          lesson.content
+        );
+
+
+      lessonContent =
+        structure?.intro ??
+        lesson.content ??
+        "";
+
+    }catch(error){
+
+      console.warn(
+        "Lesson structure parsing failed:",
+        error
+      );
+
+      lessonContent =
+        lesson.content || "";
+
+    }
+
+  }
+
+
+  const lessonLevel =
+    lesson?.level ||
+    state.levels?.[0] ||
+    "";
 
 
   openModalContent(`
@@ -6742,6 +7183,7 @@ function openLessonModal(
     </h2>
 
     <form
+      id="lessonForm"
       onsubmit="saveLesson(
         event,
         ${JSON.stringify(editId)}
@@ -6754,13 +7196,10 @@ function openLessonModal(
 
       <input
         id="LESSON_LEVEL"
-        value="${esc(
-          lesson?.level ||
-          state.levels[0] ||
-          ""
-        )}"
+        value="${esc(lessonLevel)}"
         required
       >
+
 
       <label>
         Class
@@ -6775,6 +7214,7 @@ function openLessonModal(
         required
       >
 
+
       <label>
         Subject
       </label>
@@ -6787,6 +7227,7 @@ function openLessonModal(
         )}"
         required
       >
+
 
       <label>
         Lesson Title
@@ -6801,18 +7242,21 @@ function openLessonModal(
         required
       >
 
+
       <label>
         YouTube Video URL
       </label>
 
       <input
         id="LESSON_VIDEO"
+        type="url"
         value="${esc(
           lesson?.videoUrl ||
           ""
         )}"
         placeholder="https://www.youtube.com/watch?v=..."
       >
+
 
       <label>
         Access Type
@@ -6821,19 +7265,21 @@ function openLessonModal(
       <select
         id="LESSON_ACCESS"
         onchange="
-          const box=$('priceBox');
-          if(box)
+          const box = $('priceBox');
+          if(box){
             box.style.display =
-              this.value==='PAID'
+              this.value === 'PAID'
                 ? 'block'
-                : 'none'
+                : 'none';
+          }
         "
       >
 
         <option
           value="FREE"
           ${
-            lesson?.accessType === "FREE"
+            lesson?.accessType === "FREE" ||
+            !lesson?.accessType
               ? "selected"
               : ""
           }
@@ -6862,7 +7308,7 @@ function openLessonModal(
             lesson?.accessType === "PAID"
               ? "block"
               : "none"
-          }
+          };
         "
       >
 
@@ -6876,8 +7322,7 @@ function openLessonModal(
           min="0"
           step="0.01"
           value="${esc(
-            lesson?.price ||
-            "0"
+            lesson?.price ?? "0"
           )}"
         >
 
@@ -6890,25 +7335,31 @@ function openLessonModal(
 
       <textarea
         id="LESSON_CONTENT"
-      >${esc(
-        parseLessonStructure(
-          lesson?.content
-        )?.intro ??
-        lesson?.content ??
-        ""
-      )}</textarea>
+      >${esc(lessonContent)}</textarea>
+
 
       ${
         editId
           ? `
+
             <div
               class="notice"
               style="margin-top:10px"
             >
-              This field is the lesson introduction/overview.
-              Use <strong>Topics & Content</strong> after saving to add
-              topics, subtopics, videos and other child content.
+
+              This field is the lesson
+              introduction/overview.
+
+              Use
+              <strong>
+                Topics & Content
+              </strong>
+              after saving to add topics,
+              subtopics, videos and other
+              child content.
+
             </div>
+
           `
           : ""
       }
@@ -6930,8 +7381,15 @@ function openLessonModal(
           Cancel
         </button>
 
-        <button class="btn primary">
-          Save Lesson
+        <button
+          type="submit"
+          class="btn primary"
+        >
+          ${
+            editId
+              ? "Save Changes"
+              : "Save Lesson"
+          }
         </button>
 
       </div>
@@ -6948,7 +7406,9 @@ async function saveLesson(
   editId
 ){
 
-  event.preventDefault();
+  if(event){
+    event.preventDefault();
+  }
 
 
   if(
@@ -6981,88 +7441,94 @@ async function saveLesson(
   }
 
 
-  const payload = {
+  /*
+    IMPORTANT FIX:
+    The old code referenced `lesson` here,
+    but `lesson` only existed inside
+    openLessonModal().
 
-    id:
-      editId ||
-      uid("lesson"),
+    We retrieve the existing lesson again
+    before preserving its structure.
+  */
 
-    level:
-      $("LESSON_LEVEL")
-        ?.value
-        .trim() ||
-      "",
+  const existingLesson =
+    editId &&
+    Array.isArray(state.lessons)
 
-    class:
-      $("LESSON_CLASS")
-        ?.value
-        .trim() ||
-      "",
-
-    subject:
-      $("LESSON_SUBJECT")
-        ?.value
-        .trim() ||
-      "",
-
-    title:
-      $("LESSON_TITLE")
-        ?.value
-        .trim() ||
-      "",
-
-    videoUrl:
-      $("LESSON_VIDEO")
-        ?.value
-        .trim() ||
-      "",
-
-    accessType:
-      $("LESSON_ACCESS")
-        ?.value ||
-      "FREE",
-
-    price:
-      Math.max(
-        0,
-        parseFloat(
-          $("LESSON_PRICE")
-            ?.value ||
-          "0"
+      ? state.lessons.find(
+          l => String(l.id) === String(editId)
         )
-      ),
 
-    content:
-      (() => {
-        const entered =
-          $("LESSON_CONTENT")
-            ?.value
-            .trim() ||
-          "";
+      : null;
 
-        const existingStructure =
-          editId
-            ? parseLessonStructure(
-                lesson?.content
-              )
-            : null;
 
-        return existingStructure
-          ? serializeLessonStructure({
-              ...existingStructure,
-              intro:entered
-            })
-          : entered;
-      })()
+  const level =
+    $("LESSON_LEVEL")
+      ?.value
+      ?.trim() ||
+    "";
 
-  };
+
+  const className =
+    $("LESSON_CLASS")
+      ?.value
+      ?.trim() ||
+    "";
+
+
+  const subject =
+    $("LESSON_SUBJECT")
+      ?.value
+      ?.trim() ||
+    "";
+
+
+  const title =
+    $("LESSON_TITLE")
+      ?.value
+      ?.trim() ||
+    "";
+
+
+  const videoUrl =
+    $("LESSON_VIDEO")
+      ?.value
+      ?.trim() ||
+    "";
+
+
+  const accessType =
+    $("LESSON_ACCESS")
+      ?.value ||
+    "FREE";
+
+
+  const rawPrice =
+    parseFloat(
+      $("LESSON_PRICE")
+        ?.value ||
+      "0"
+    );
+
+
+  const price =
+    Number.isFinite(rawPrice)
+      ? Math.max(0, rawPrice)
+      : 0;
+
+
+  const entered =
+    $("LESSON_CONTENT")
+      ?.value
+      ?.trim() ||
+    "";
 
 
   if(
-    !payload.level ||
-    !payload.class ||
-    !payload.subject ||
-    !payload.title
+    !level ||
+    !className ||
+    !subject ||
+    !title
   ){
 
     toast(
@@ -7075,26 +7541,132 @@ async function saveLesson(
   }
 
 
-  const res =
-    await upsert(
-      "app_lessons",
-      payload,
-      "Saving lesson"
-    );
+  let content = entered;
 
 
-  if(res){
+  /*
+    Preserve existing structured lesson
+    content when editing.
+  */
+
+  if(existingLesson){
+
+    try{
+
+      const existingStructure =
+        parseLessonStructure(
+          existingLesson.content
+        );
+
+
+      if(existingStructure){
+
+        content =
+          serializeLessonStructure({
+
+            ...existingStructure,
+
+            intro:
+              entered
+
+          });
+
+      }
+
+    }catch(error){
+
+      console.warn(
+        "Could not preserve lesson structure:",
+        error
+      );
+
+    }
+
+  }
+
+
+  const payload = {
+
+    id:
+      editId ||
+      uid("lesson"),
+
+    level,
+
+    class:
+      className,
+
+    subject,
+
+    title,
+
+    videoUrl,
+
+    accessType,
+
+    price:
+      accessType === "PAID"
+        ? price
+        : 0,
+
+    content
+
+  };
+
+
+  try{
+
+    const res =
+      await upsert(
+        "app_lessons",
+        payload,
+        "Saving lesson"
+      );
+
+
+    if(!res){
+      return;
+    }
+
 
     toast(
-      "Lesson saved successfully."
+      editId
+        ? "Lesson updated successfully."
+        : "Lesson created successfully."
     );
+
 
     closeModal();
 
+
     await refreshData();
 
-    openLesson(
-      payload.id
+
+    /*
+      Only open the lesson after data has
+      successfully refreshed.
+    */
+
+    if(
+      typeof openLesson === "function"
+    ){
+
+      openLesson(
+        payload.id
+      );
+
+    }
+
+  }catch(error){
+
+    console.error(
+      "Save lesson error:",
+      error
+    );
+
+    toast(
+      "Unable to save lesson.",
+      "err"
     );
 
   }
@@ -7102,7 +7674,9 @@ async function saveLesson(
 }
 
 
-function editLesson(id){
+function editLesson(
+  id
+){
 
   if(!canEditLessons()){
 
@@ -7140,29 +7714,30 @@ async function deleteLessonPrompt(
 
 
   if(
-    confirm(
+    !confirm(
       "Are you sure you want to delete this lesson?"
     )
   ){
-
-    const success =
-      await deleteRow(
-        "app_lessons",
-        "id",
-        id,
-        "Deleting lesson"
-      );
+    return;
+  }
 
 
-    if(success){
+  const success =
+    await deleteRow(
+      "app_lessons",
+      "id",
+      id,
+      "Deleting lesson"
+    );
 
-      toast(
-        "Lesson deleted."
-      );
 
-      await refreshData();
+  if(success){
 
-    }
+    toast(
+      "Lesson deleted."
+    );
+
+    await refreshData();
 
   }
 
@@ -7172,6 +7747,7 @@ async function deleteLessonPrompt(
 /* =========================================================
    USER MANAGEMENT
 ========================================================= */
+
 async function openUserManagementModal(){
 
   if(!canManageUsers()){
@@ -7186,256 +7762,308 @@ async function openUserManagementModal(){
   }
 
 
-  const profiles =
-    await safeSelect(
-      "profiles"
+  try{
+
+    const profilesRaw =
+      await safeSelect(
+        "profiles"
+      );
+
+
+    const profiles =
+      Array.isArray(profilesRaw)
+        ? profilesRaw
+        : [];
+
+
+    const masterEmail =
+      String(
+        CONFIG?.MASTER_ADMIN_EMAIL ||
+        ""
+      )
+      .trim()
+      .toLowerCase();
+
+
+    openModalContent(`
+
+      <h2>
+        👥 User Account & Role Management
+      </h2>
+
+      <p class="muted">
+        Full administrator control over
+        user roles, account status and
+        lesson access.
+      </p>
+
+      <div
+        class="list"
+        style="
+          margin-top:15px;
+          max-height:400px;
+          overflow-y:auto;
+        "
+      >
+
+        ${
+          profiles.length
+
+            ? profiles.map(
+                p => {
+
+                  const email =
+                    String(
+                      p.email || ""
+                    );
+
+                  const isMaster =
+                    email
+                      .toLowerCase() ===
+                    masterEmail;
+
+
+                  const role =
+                    String(
+                      p.role ||
+                      "STUDENT"
+                    ).toUpperCase();
+
+
+                  const status =
+                    String(
+                      p.status ||
+                      "ACTIVE"
+                    ).toUpperCase();
+
+
+                  const learnerSelected =
+                    role === "STUDENT" ||
+                    role === "STUDENT_FREE";
+
+
+                  return `
+
+                    <div class="item">
+
+                      <div>
+
+                        <strong>
+                          ${esc(
+                            p.name ||
+                            "User"
+                          )}
+                        </strong>
+
+                        <br>
+
+                        <small class="muted">
+
+                          ${esc(email)}
+
+                          <br>
+
+                          ID:
+                          ${esc(
+                            p.id || ""
+                          )}
+
+                          <br>
+
+                          Current Role:
+                          <b>
+                            ${esc(role)}
+                          </b>
+
+                          · Status:
+
+                          <span
+                            class="${
+                              status === "DISABLED"
+                                ? "danger-text"
+                                : "success-text"
+                            }"
+                          >
+                            ${esc(status)}
+                          </span>
+
+                        </small>
+
+                      </div>
+
+
+                      <div class="row wrap">
+
+                        <select
+                          ${
+                            isMaster
+                              ? "disabled"
+                              : ""
+                          }
+                          onchange="
+                            updateUserRole(
+                              ${JSON.stringify(p.id)},
+                              this.value
+                            )
+                          "
+                        >
+
+                          <option
+                            value="STUDENT"
+                            ${
+                              learnerSelected
+                                ? "selected"
+                                : ""
+                            }
+                          >
+                            Learner
+                          </option>
+
+                          <option
+                            value="TUTOR"
+                            ${
+                              role === "TUTOR"
+                                ? "selected"
+                                : ""
+                            }
+                          >
+                            Tutor
+                          </option>
+
+                          <option
+                            value="ADMIN"
+                            ${
+                              role === "ADMIN"
+                                ? "selected"
+                                : ""
+                            }
+                          >
+                            Administrator
+                          </option>
+
+                        </select>
+
+
+                        <button
+                          type="button"
+                          class="btn ${
+                            status === "DISABLED"
+                              ? "success"
+                              : "danger"
+                          }"
+                          ${
+                            isMaster
+                              ? "disabled"
+                              : ""
+                          }
+                          onclick="
+                            toggleUserStatus(
+                              ${JSON.stringify(p.id)},
+                              ${JSON.stringify(status)}
+                            )
+                          "
+                        >
+                          ${
+                            status === "DISABLED"
+                              ? "Enable Account"
+                              : "Disable Account"
+                          }
+                        </button>
+
+
+                        <button
+                          type="button"
+                          class="btn primary"
+                          onclick="
+                            adminGrantPurchasePrompt(
+                              ${JSON.stringify(p.id)}
+                            )
+                          "
+                        >
+                          Grant Lesson
+                        </button>
+
+
+                        ${
+                          ![
+                            "ADMIN",
+                            "STUDENT",
+                            "STUDENT_FREE",
+                            "TUTOR"
+                          ].includes(role)
+
+                            ? `
+
+                              <button
+                                type="button"
+                                class="btn"
+                                onclick="
+                                  repairUserRole(
+                                    ${JSON.stringify(p.id)}
+                                  )
+                                "
+                              >
+                                Repair Role
+                              </button>
+
+                            `
+
+                            : ""
+                        }
+
+                      </div>
+
+                    </div>
+
+                  `;
+
+                }
+              ).join("")
+
+            : `
+
+              <div class="empty">
+                No user profiles found.
+              </div>
+
+            `
+        }
+
+      </div>
+
+
+      <div
+        style="
+          text-align:right;
+          margin-top:20px
+        "
+      >
+
+        <button
+          type="button"
+          class="btn"
+          onclick="closeModal()"
+        >
+          Close
+        </button>
+
+      </div>
+
+    `);
+
+  }catch(error){
+
+    console.error(
+      "User management error:",
+      error
     );
 
+    toast(
+      "Unable to load user accounts.",
+      "err"
+    );
 
-  openModalContent(`
-
-    <h2>
-      👥 User Account & Role Management
-    </h2>
-
-    <p class="muted">
-      Full administrator control over
-      user roles, account status and
-      lesson access.
-    </p>
-
-    <div
-      class="list"
-      style="
-        margin-top:15px;
-        max-height:400px;
-        overflow-y:auto;
-      "
-    >
-
-      ${
-        profiles.length
-
-          ? profiles.map(
-              p => `
-
-                <div class="item">
-
-                  <div>
-
-                    <strong>
-                      ${esc(
-                        p.name ||
-                        "User"
-                      )}
-                    </strong>
-
-                    <br>
-
-                    <small class="muted">
-
-                      ${esc(
-                        p.email ||
-                        ""
-                      )}
-
-                      <br>
-
-                      ID:
-                      ${esc(
-                        p.id
-                      )}
-
-                      <br>
-
-                      Current Role:
-                      <b>
-                        ${esc(
-                          p.role ||
-                          "STUDENT"
-                        )}
-                      </b>
-
-                      · Status:
-
-                      <span
-                        class="${
-                          p.status ===
-                          "DISABLED"
-                            ? "danger-text"
-                            : "success-text"
-                        }"
-                      >
-                        ${esc(
-                          p.status ||
-                          "ACTIVE"
-                        )}
-                      </span>
-
-                    </small>
-
-                  </div>
-
-
-                  <div class="row wrap">
-
-                    <select
-                      ${
-                        String(
-                          p.email || ""
-                        ).toLowerCase()
-                        ===
-                        CONFIG.MASTER_ADMIN_EMAIL
-                          .toLowerCase()
-                          ? "disabled"
-                          : ""
-                      }
-                      onchange="
-                        updateUserRole(
-                          ${JSON.stringify(p.id)},
-                          this.value
-                        )
-                      "
-                    >
-
-                      <option
-                        value="STUDENT"
-                        ${
-                          p.role === "STUDENT" ||
-                          p.role === "STUDENT_FREE"
-                            ? "selected"
-                            : ""
-                        }
-                      >
-                        Learner
-                      </option>
-
-                      <option
-                        value="TUTOR"
-                        ${
-                          p.role === "TUTOR"
-                            ? "selected"
-                            : ""
-                        }
-                      >
-                        Tutor
-                      </option>
-
-                      <option
-                        value="ADMIN"
-                        ${
-                          p.role === "ADMIN"
-                            ? "selected"
-                            : ""
-                        }
-                      >
-                        Administrator
-                      </option>
-
-                    </select>
-
-
-                    <button
-                      class="btn ${
-                        p.status === "DISABLED"
-                          ? "success"
-                          : "danger"
-                      }"
-                      ${
-                        String(
-                          p.email || ""
-                        ).toLowerCase()
-                        ===
-                        CONFIG.MASTER_ADMIN_EMAIL
-                          .toLowerCase()
-                          ? "disabled"
-                          : ""
-                      }
-                      onclick="
-                        toggleUserStatus(
-                          ${JSON.stringify(p.id)},
-                          ${JSON.stringify(
-                            p.status ||
-                            "ACTIVE"
-                          )}
-                        )
-                      "
-                    >
-                      ${
-                        p.status === "DISABLED"
-                          ? "Enable Account"
-                          : "Disable Account"
-                      }
-                    </button>
-
-
-                    <button
-                      class="btn primary"
-                      onclick="
-                        adminGrantPurchasePrompt(
-                          ${JSON.stringify(p.id)}
-                        )
-                      "
-                    >
-                      Grant Lesson
-                    </button>
-
-
-                    ${
-                      p.role !== "ADMIN" &&
-                      p.role !== "STUDENT" &&
-                      p.role !== "TUTOR"
-
-                        ? `
-                          <button
-                            class="btn"
-                            onclick="
-                              repairUserRole(
-                                ${JSON.stringify(p.id)}
-                              )
-                            "
-                          >
-                            Repair Role
-                          </button>
-                        `
-
-                        : ""
-                    }
-
-                  </div>
-
-                </div>
-
-              `
-            ).join("")
-
-          : `
-            <div class="empty">
-              No user profiles found.
-            </div>
-          `
-      }
-
-    </div>
-
-
-    <div
-      style="
-        text-align:right;
-        margin-top:20px
-      "
-    >
-
-      <button
-        class="btn"
-        onclick="closeModal()"
-      >
-        Close
-      </button>
-
-    </div>
-
-  `);
+  }
 
 }
 
@@ -7474,75 +8102,119 @@ async function updateUserRole(
   }
 
 
-  const {
-    data:user
-  } =
-    await sb
-      .from("profiles")
-      .select("email")
-      .eq("id",userId)
-      .maybeSingle();
+  try{
+
+    const {
+      data:user,
+      error:lookupError
+    } =
+      await sb
+        .from("profiles")
+        .select("email")
+        .eq(
+          "id",
+          userId
+        )
+        .maybeSingle();
 
 
-  if(
-    String(
-      user?.email ||
-      ""
-    ).toLowerCase()
-    ===
-    CONFIG.MASTER_ADMIN_EMAIL
-      .toLowerCase()
-  ){
+    if(lookupError){
+
+      toast(
+        lookupError.message,
+        "err"
+      );
+
+      return;
+
+    }
+
+
+    const masterEmail =
+      String(
+        CONFIG?.MASTER_ADMIN_EMAIL ||
+        ""
+      )
+      .toLowerCase();
+
+
+    if(
+      String(
+        user?.email ||
+        ""
+      ).toLowerCase()
+      ===
+      masterEmail
+    ){
+
+      toast(
+        "The master administrator role cannot be downgraded.",
+        "err"
+      );
+
+      await openUserManagementModal();
+
+      return;
+
+    }
+
+
+    const safeRole =
+      [
+        "STUDENT",
+        "TUTOR",
+        "ADMIN"
+      ].includes(
+        String(newRole).toUpperCase()
+      )
+        ? String(newRole).toUpperCase()
+        : "STUDENT";
+
+
+    const {
+      error
+    } =
+      await sb
+        .from("profiles")
+        .update({
+          role:safeRole
+        })
+        .eq(
+          "id",
+          userId
+        );
+
+
+    if(
+      dbError(
+        error,
+        "Updating role"
+      )
+    ){
+      return;
+    }
+
 
     toast(
-      "The master administrator role cannot be downgraded.",
-      "err"
+      `User role updated to ${safeRole}.`
     );
+
 
     await openUserManagementModal();
 
-    return;
+  }catch(error){
+
+    console.error(
+      "Update user role error:",
+      error
+    );
+
+    toast(
+      "Unable to update user role.",
+      "err"
+    );
 
   }
-
-
-  const safeRole =
-    ["STUDENT","TUTOR","ADMIN"]
-      .includes(newRole)
-      ? newRole
-      : "STUDENT";
-
-
-  const {
-    error
-  } =
-    await sb
-      .from("profiles")
-      .update({
-        role:safeRole
-      })
-      .eq(
-        "id",
-        userId
-      );
-
-
-  if(
-    dbError(
-      error,
-      "Updating role"
-    )
-  ){
-    return;
-  }
-
-
-  toast(
-    `User role updated to ${safeRole}.`
-  );
-
-
-  await openUserManagementModal();
 
 }
 
@@ -7563,36 +8235,66 @@ async function repairUserRole(
   }
 
 
-  const {
-    error
-  } =
-    await sb
-      .from("profiles")
-      .update({
-        role:"STUDENT"
-      })
-      .eq(
-        "id",
-        userId
-      );
-
-
   if(
-    dbError(
-      error,
-      "Repairing user role"
-    )
+    userId === currentUserId()
   ){
+
+    toast(
+      "You cannot repair your own administrator role.",
+      "err"
+    );
+
     return;
+
   }
 
 
-  toast(
-    "User role repaired to Learner."
-  );
+  try{
+
+    const {
+      error
+    } =
+      await sb
+        .from("profiles")
+        .update({
+          role:"STUDENT"
+        })
+        .eq(
+          "id",
+          userId
+        );
 
 
-  await openUserManagementModal();
+    if(
+      dbError(
+        error,
+        "Repairing user role"
+      )
+    ){
+      return;
+    }
+
+
+    toast(
+      "User role repaired to Learner."
+    );
+
+
+    await openUserManagementModal();
+
+  }catch(error){
+
+    console.error(
+      "Repair role error:",
+      error
+    );
+
+    toast(
+      "Unable to repair user role.",
+      "err"
+    );
+
+  }
 
 }
 
@@ -7628,75 +8330,114 @@ async function toggleUserStatus(
   }
 
 
-  const {
-    data:user
-  } =
-    await sb
-      .from("profiles")
-      .select("email")
-      .eq("id",userId)
-      .maybeSingle();
+  try{
+
+    const {
+      data:user,
+      error:lookupError
+    } =
+      await sb
+        .from("profiles")
+        .select("email")
+        .eq(
+          "id",
+          userId
+        )
+        .maybeSingle();
 
 
-  if(
-    String(
-      user?.email ||
-      ""
-    ).toLowerCase()
-    ===
-    CONFIG.MASTER_ADMIN_EMAIL
-      .toLowerCase()
-  ){
+    if(lookupError){
+
+      toast(
+        lookupError.message,
+        "err"
+      );
+
+      return;
+
+    }
+
+
+    const masterEmail =
+      String(
+        CONFIG?.MASTER_ADMIN_EMAIL ||
+        ""
+      )
+      .toLowerCase();
+
+
+    if(
+      String(
+        user?.email ||
+        ""
+      ).toLowerCase()
+      ===
+      masterEmail
+    ){
+
+      toast(
+        "The master administrator account cannot be disabled.",
+        "err"
+      );
+
+      return;
+
+    }
+
+
+    const newStatus =
+      String(
+        currentStatus
+      ).toUpperCase()
+      === "DISABLED"
+        ? "ACTIVE"
+        : "DISABLED";
+
+
+    const {
+      error
+    } =
+      await sb
+        .from("profiles")
+        .update({
+          status:newStatus
+        })
+        .eq(
+          "id",
+          userId
+        );
+
+
+    if(
+      dbError(
+        error,
+        "Updating user status"
+      )
+    ){
+      return;
+    }
+
 
     toast(
-      "The master administrator account cannot be disabled.",
+      `User account status changed to ${newStatus}.`
+    );
+
+
+    await openUserManagementModal();
+
+  }catch(error){
+
+    console.error(
+      "Toggle user status error:",
+      error
+    );
+
+    toast(
+      "Unable to change account status.",
       "err"
     );
 
-    return;
-
   }
-
-
-  const newStatus =
-    String(
-      currentStatus
-    ).toUpperCase()
-    === "DISABLED"
-      ? "ACTIVE"
-      : "DISABLED";
-
-
-  const {
-    error
-  } =
-    await sb
-      .from("profiles")
-      .update({
-        status:newStatus
-      })
-      .eq(
-        "id",
-        userId
-      );
-
-
-  if(
-    dbError(
-      error,
-      "Updating user status"
-    )
-  ){
-    return;
-  }
-
-
-  toast(
-    `User account status changed to ${newStatus}.`
-  );
-
-
-  await openUserManagementModal();
 
 }
 
@@ -7723,13 +8464,16 @@ async function adminGrantPurchasePrompt(
     );
 
 
-  if(!lessonId){
+  if(
+    lessonId === null ||
+    !lessonId.trim()
+  ){
     return;
   }
 
 
   await adminGrantPurchase(
-    lessonId,
+    lessonId.trim(),
     userId
   );
 
@@ -7758,47 +8502,69 @@ async function adminGrantPurchase(
     !userId
   ){
     return;
+
   }
 
 
-  const {
-    error
-  } =
-    await sb
-      .from("app_purchases")
-      .upsert({
+  try{
 
-        user_id:userId,
+    const {
+      error
+    } =
+      await sb
+        .from("app_purchases")
+        .upsert({
 
-        lesson_id:lessonId,
+          user_id:
+            userId,
 
-        status:"PAID",
+          lesson_id:
+            lessonId,
 
-        source:"ADMIN_GRANT",
+          status:
+            "PAID",
 
-        currency:"USD"
+          source:
+            "ADMIN_GRANT",
 
-      });
+          currency:
+            "USD"
+
+        });
 
 
-  if(error){
+    if(error){
+
+      toast(
+        error.message,
+        "err"
+      );
+
+      return;
+
+    }
+
 
     toast(
-      error.message,
+      "Admin grant successful!"
+    );
+
+
+    await loadDataFromCloud();
+
+  }catch(error){
+
+    console.error(
+      "Admin grant error:",
+      error
+    );
+
+    toast(
+      "Unable to grant lesson access.",
       "err"
     );
 
-    return;
-
   }
-
-
-  toast(
-    "Admin grant successful!"
-  );
-
-
-  await loadDataFromCloud();
 
 }
 
@@ -7824,6 +8590,10 @@ function openPlatformSettings(){
   normalisePermissions();
 
 
+  const config =
+    state.config || {};
+
+
   openModalContent(`
 
     <h2>
@@ -7838,10 +8608,13 @@ function openPlatformSettings(){
 
 
     <form
+      id="platformSettingsForm"
       onsubmit="savePlatformSettings(event)"
     >
 
-      <!-- GENERAL -->
+      <!-- =================================================
+           GENERAL
+      ================================================== -->
 
       <div class="settings-role">
 
@@ -7856,8 +8629,9 @@ function openPlatformSettings(){
         <input
           id="settingPortalTitle"
           value="${esc(
-            state.config.portalTitle ||
-            CONFIG.DEFAULT_TITLE
+            config.portalTitle ||
+            CONFIG.DEFAULT_TITLE ||
+            ""
           )}"
           required
         >
@@ -7867,12 +8641,14 @@ function openPlatformSettings(){
           Allow New User Registrations
         </label>
 
-        <select id="settingAllowSignups">
+        <select
+          id="settingAllowSignups"
+        >
 
           <option
             value="true"
             ${
-              state.config.allowSignups !== false
+              config.allowSignups !== false
                 ? "selected"
                 : ""
             }
@@ -7883,7 +8659,7 @@ function openPlatformSettings(){
           <option
             value="false"
             ${
-              state.config.allowSignups === false
+              config.allowSignups === false
                 ? "selected"
                 : ""
             }
@@ -7898,12 +8674,14 @@ function openPlatformSettings(){
           Platform Maintenance Mode
         </label>
 
-        <select id="settingMaintenance">
+        <select
+          id="settingMaintenance"
+        >
 
           <option
             value="false"
             ${
-              !state.config.maintenanceMode
+              !config.maintenanceMode
                 ? "selected"
                 : ""
             }
@@ -7914,7 +8692,7 @@ function openPlatformSettings(){
           <option
             value="true"
             ${
-              state.config.maintenanceMode
+              config.maintenanceMode
                 ? "selected"
                 : ""
             }
@@ -7927,7 +8705,9 @@ function openPlatformSettings(){
       </div>
 
 
-      <!-- TUTOR -->
+      <!-- =================================================
+           TUTOR
+      ================================================== -->
 
       <div class="settings-role">
 
@@ -8073,7 +8853,9 @@ function openPlatformSettings(){
       </div>
 
 
-      <!-- LEARNER -->
+      <!-- =================================================
+           LEARNER
+      ================================================== -->
 
       <div class="settings-role">
 
@@ -8191,7 +8973,9 @@ function openPlatformSettings(){
       </div>
 
 
-      <!-- ADMIN -->
+      <!-- =================================================
+           ADMIN
+      ================================================== -->
 
       <div class="settings-role">
 
@@ -8202,9 +8986,11 @@ function openPlatformSettings(){
         <div class="notice">
 
           Administrator accounts retain full
-          platform control. The master administrator
-          cannot be downgraded or disabled through
-          the normal account-management interface.
+          platform control.
+
+          The master administrator cannot be
+          downgraded or disabled through the
+          normal account-management interface.
 
         </div>
 
@@ -8227,7 +9013,10 @@ function openPlatformSettings(){
           Cancel
         </button>
 
-        <button class="btn primary">
+        <button
+          type="submit"
+          class="btn primary"
+        >
           Save All Settings
         </button>
 
@@ -8249,7 +9038,9 @@ function permissionControl(
 
   const checked =
     state.config
-      ?.permissions?.[role]?.[key]
+      ?.permissions
+      ?.[role]
+      ?.[key]
       === true;
 
 
@@ -8290,7 +9081,9 @@ async function savePlatformSettings(
   event
 ){
 
-  event.preventDefault();
+  if(event){
+    event.preventDefault();
+  }
 
 
   if(!isAdmin()){
@@ -8305,128 +9098,141 @@ async function savePlatformSettings(
   }
 
 
-  const portalTitle =
-    $("settingPortalTitle")
-      ?.value
-      .trim() ||
-    CONFIG.DEFAULT_TITLE;
+  try{
+
+    const portalTitle =
+      $("settingPortalTitle")
+        ?.value
+        ?.trim() ||
+      CONFIG.DEFAULT_TITLE;
 
 
-  const allowSignups =
-    $("settingAllowSignups")
-      ?.value === "true";
+    const allowSignups =
+      $("settingAllowSignups")
+        ?.value === "true";
 
 
-  const maintenanceMode =
-    $("settingMaintenance")
-      ?.value === "true";
+    const maintenanceMode =
+      $("settingMaintenance")
+        ?.value === "true";
 
 
-  const permissions = {
+    const permissions = {
 
-    TUTOR:{
-      ...DEFAULT_PERMISSIONS.TUTOR
-    },
+      TUTOR:{
+        ...(DEFAULT_PERMISSIONS?.TUTOR || {})
+      },
 
-    STUDENT:{
-      ...DEFAULT_PERMISSIONS.STUDENT
-    }
+      STUDENT:{
+        ...(DEFAULT_PERMISSIONS?.STUDENT || {})
+      }
 
-  };
-
-
-  document
-    .querySelectorAll(
-      "[data-permission-role][data-permission-key]"
-    )
-    .forEach(
-      checkbox => {
-
-        const role =
-          checkbox.dataset
-            .permissionRole;
-
-        const key =
-          checkbox.dataset
-            .permissionKey;
+    };
 
 
-        if(
-          permissions[role]
-        ){
+    document
+      .querySelectorAll(
+        "[data-permission-role][data-permission-key]"
+      )
+      .forEach(
+        checkbox => {
 
-          permissions[role][key] =
-            checkbox.checked;
+          const role =
+            checkbox.dataset
+              .permissionRole;
+
+          const key =
+            checkbox.dataset
+              .permissionKey;
+
+
+          if(
+            permissions[role] &&
+            key
+          ){
+
+            permissions[role][key] =
+              checkbox.checked;
+
+          }
 
         }
+      );
 
-      }
+
+    const newConfig = {
+
+      ...(state.config || {}),
+
+      portalTitle,
+
+      allowSignups,
+
+      maintenanceMode,
+
+      permissions
+
+    };
+
+
+    const {
+      error
+    } =
+      await sb
+        .from("platform_config")
+        .upsert({
+
+          key:
+            "settings",
+
+          value:
+            newConfig
+
+        });
+
+
+    if(
+      dbError(
+        error,
+        "Saving platform settings"
+      )
+    ){
+      return;
+    }
+
+
+    state.config =
+      newConfig;
+
+
+    normalisePermissions();
+
+    applyPortalBranding();
+
+    applyPermissionsToUI();
+
+    renderTree();
+
+    closeModal();
+
+
+    toast(
+      "Platform, Tutor and Learner settings saved successfully."
     );
 
+  }catch(error){
 
-  /*
-    Administrator is deliberately not
-    represented as a configurable role.
-    ADMIN always has complete control.
-  */
+    console.error(
+      "Platform settings error:",
+      error
+    );
 
-  const newConfig = {
+    toast(
+      "Unable to save platform settings.",
+      "err"
+    );
 
-    ...state.config,
-
-    portalTitle,
-
-    allowSignups,
-
-    maintenanceMode,
-
-    permissions
-
-  };
-
-
-  const {
-    error
-  } =
-    await sb
-      .from("platform_config")
-      .upsert({
-
-        key:"settings",
-
-        value:newConfig
-
-      });
-
-
-  if(
-    dbError(
-      error,
-      "Saving platform settings"
-    )
-  ){
-    return;
   }
-
-
-  state.config =
-    newConfig;
-
-
-  normalisePermissions();
-
-  applyPortalBranding();
-
-  applyPermissionsToUI();
-
-  renderTree();
-
-  closeModal();
-
-
-  toast(
-    "Platform, Tutor and Learner settings saved successfully."
-  );
 
 }
 
@@ -8437,9 +9243,7 @@ async function savePlatformSettings(
 
 function openLiveStudio(){
 
-  if(
-    !canOpenLiveStudio()
-  ){
+  if(!canOpenLiveStudio()){
 
     toast(
       "Live Studio has been disabled for your account by the administrator.",
@@ -8449,6 +9253,26 @@ function openLiveStudio(){
     return;
 
   }
+
+
+  const cameraAllowed =
+    isAdmin() ||
+    hasPermission("camera");
+
+
+  const microphoneAllowed =
+    isAdmin() ||
+    hasPermission("microphone");
+
+
+  const whiteboardAllowed =
+    isAdmin() ||
+    hasPermission("whiteboard");
+
+
+  const chatAllowed =
+    isAdmin() ||
+    hasPermission("chat");
 
 
   openModalContent(`
@@ -8469,16 +9293,18 @@ function openLiveStudio(){
     >
 
       ${
-        isAdmin() ||
-        hasPermission("camera")
+        cameraAllowed
 
           ? `
+
             <button
+              type="button"
               class="btn primary"
               onclick="startCameraStream()"
             >
               Start Camera Feed
             </button>
+
           `
 
           : ""
@@ -8486,6 +9312,7 @@ function openLiveStudio(){
 
 
       <button
+        type="button"
         class="btn danger"
         onclick="stopLiveStudioResources()"
       >
@@ -8510,7 +9337,9 @@ function openLiveStudio(){
         ></video>
 
         <div class="peer-label">
+
           You
+
           ${
             isTutor()
               ? "(Tutor)"
@@ -8518,6 +9347,7 @@ function openLiveStudio(){
                 ? "(Administrator)"
                 : "(Learner)"
           }
+
         </div>
 
       </div>
@@ -8531,8 +9361,7 @@ function openLiveStudio(){
     >
 
       ${
-        isAdmin() ||
-        hasPermission("whiteboard")
+        whiteboardAllowed
 
           ? `
 
@@ -8550,6 +9379,11 @@ function openLiveStudio(){
                   id="whiteboardCanvas"
                   width="600"
                   height="380"
+                  style="
+                    max-width:100%;
+                    touch-action:none;
+                    cursor:crosshair;
+                  "
                 ></canvas>
 
               </div>
@@ -8563,8 +9397,7 @@ function openLiveStudio(){
 
 
       ${
-        isAdmin() ||
-        hasPermission("chat")
+        chatAllowed
 
           ? `
 
@@ -8596,12 +9429,15 @@ function openLiveStudio(){
                     id="chatInput"
                     placeholder="Type message..."
                     onkeydown="
-                      if(event.key==='Enter')
-                        sendChat()
+                      if(event.key === 'Enter'){
+                        event.preventDefault();
+                        sendChat();
+                      }
                     "
                   >
 
                   <button
+                    type="button"
                     class="btn primary"
                     onclick="sendChat()"
                   >
@@ -8631,8 +9467,12 @@ function openLiveStudio(){
     >
 
       <button
+        type="button"
         class="btn"
-        onclick="closeModal();stopLiveStudioResources()"
+        onclick="
+          stopLiveStudioResources();
+          closeModal();
+        "
       >
         Close Studio
       </button>
@@ -8642,13 +9482,34 @@ function openLiveStudio(){
   `);
 
 
+  /*
+    Always clean up an existing studio
+    channel before creating another one.
+  */
+
+  if(state.liveChannel){
+
+    stopLiveStudioResources();
+
+  }
+
+
   state.liveRoomId =
     "global-classroom";
 
 
-  initWhiteboard();
+  if(whiteboardAllowed){
 
-  initRealtimeChat();
+    initWhiteboard();
+
+  }
+
+
+  if(chatAllowed){
+
+    initRealtimeChat();
+
+  }
 
 }
 
@@ -8670,7 +9531,45 @@ async function startCameraStream(){
   }
 
 
+  if(
+    !navigator.mediaDevices ||
+    typeof navigator.mediaDevices.getUserMedia !== "function"
+  ){
+
+    toast(
+      "Camera and microphone access is not supported by this browser or connection.",
+      "err"
+    );
+
+    return;
+
+  }
+
+
   try{
+
+    /*
+      Stop an existing stream first.
+    */
+
+    if(state.activeStream){
+
+      state.activeStream
+        .getTracks()
+        .forEach(
+          track => track.stop()
+        );
+
+      state.activeStream =
+        null;
+
+    }
+
+
+    const useMicrophone =
+      isAdmin() ||
+      hasPermission("microphone");
+
 
     const stream =
       await navigator.mediaDevices
@@ -8679,10 +9578,7 @@ async function startCameraStream(){
           video:true,
 
           audio:
-            isAdmin() ||
-            hasPermission(
-              "microphone"
-            )
+            useMicrophone
 
         });
 
@@ -8700,11 +9596,27 @@ async function startCameraStream(){
       localVideo.srcObject =
         stream;
 
+
+      try{
+
+        await localVideo.play();
+
+      }catch(error){
+
+        console.warn(
+          "Video autoplay warning:",
+          error
+        );
+
+      }
+
     }
 
 
     toast(
-      "Camera stream started."
+      useMicrophone
+        ? "Camera and microphone started."
+        : "Camera started. Microphone is disabled."
     );
 
   }catch(err){
@@ -8714,8 +9626,40 @@ async function startCameraStream(){
       err
     );
 
+
+    let message =
+      "Could not access camera or microphone.";
+
+
+    if(
+      err?.name ===
+      "NotAllowedError"
+    ){
+
+      message =
+        "Camera/microphone permission was denied. Allow access in your browser settings.";
+
+    }else if(
+      err?.name ===
+      "NotFoundError"
+    ){
+
+      message =
+        "No suitable camera or microphone was found.";
+
+    }else if(
+      err?.name ===
+      "NotReadableError"
+    ){
+
+      message =
+        "The camera or microphone is already being used by another application.";
+
+    }
+
+
     toast(
-      "Could not access camera or microphone. Check browser permissions.",
+      message,
       "err"
     );
 
@@ -8726,13 +9670,43 @@ async function startCameraStream(){
 
 async function stopLiveStudioResources(){
 
+  /*
+    Stop local media.
+  */
+
   if(state.activeStream){
 
-    state.activeStream
-      .getTracks()
-      .forEach(
-        t => t.stop()
+    try{
+
+      state.activeStream
+        .getTracks()
+        .forEach(
+          track => {
+
+            try{
+
+              track.stop();
+
+            }catch(error){
+
+              console.warn(
+                "Track stop warning:",
+                error
+              );
+
+            }
+
+          }
+        );
+
+    }catch(error){
+
+      console.warn(
+        "Stream cleanup warning:",
+        error
       );
+
+    }
 
     state.activeStream =
       null;
@@ -8740,12 +9714,24 @@ async function stopLiveStudioResources(){
   }
 
 
+  /*
+    Disconnect realtime channel.
+  */
+
   if(state.liveChannel){
+
+    const channel =
+      state.liveChannel;
+
+
+    state.liveChannel =
+      null;
+
 
     try{
 
       await sb.removeChannel(
-        state.liveChannel
+        channel
       );
 
     }catch(error){
@@ -8757,7 +9743,27 @@ async function stopLiveStudioResources(){
 
     }
 
-    state.liveChannel =
+  }
+
+
+  /*
+    Clear local video.
+  */
+
+  const localVideo =
+    $("localVideo");
+
+
+  if(localVideo){
+
+    try{
+
+      localVideo.pause();
+
+    }catch(error){}
+
+
+    localVideo.srcObject =
       null;
 
   }
@@ -8779,18 +9785,49 @@ function initRealtimeChat(){
   }
 
 
+  /*
+    Remove previous channel if one exists.
+  */
+
+  if(state.liveChannel){
+
+    try{
+
+      sb.removeChannel(
+        state.liveChannel
+      );
+
+    }catch(error){
+
+      console.warn(
+        "Previous chat channel cleanup:",
+        error
+      );
+
+    }
+
+    state.liveChannel =
+      null;
+
+  }
+
+
   const room =
     state.liveRoomId ||
     "global-classroom";
 
 
-  state.liveChannel =
+  const channel =
     sb.channel(
       `lms-chat-${room}`
     );
 
 
-  state.liveChannel
+  state.liveChannel =
+    channel;
+
+
+  channel
     .on(
       "broadcast",
       {
@@ -8829,9 +9866,35 @@ function initRealtimeChat(){
         ){
 
           messages.innerHTML =
-            `<div class="chat-msg">
-              🟢 Realtime classroom connected.
-            </div>`;
+            `
+              <div class="chat-msg">
+                🟢 Realtime classroom connected.
+              </div>
+            `;
+
+        }else if(
+          status ===
+          "CHANNEL_ERROR"
+        ){
+
+          messages.innerHTML =
+            `
+              <div class="chat-msg">
+                🔴 Unable to connect to classroom chat.
+              </div>
+            `;
+
+        }else if(
+          status ===
+          "TIMED_OUT"
+        ){
+
+          messages.innerHTML =
+            `
+              <div class="chat-msg">
+                🟠 Classroom connection timed out.
+              </div>
+            `;
 
         }
 
@@ -8876,7 +9939,10 @@ async function sendChat(){
 
   const payload = {
 
-    id:crypto.randomUUID(),
+    id:
+      typeof crypto?.randomUUID === "function"
+        ? crypto.randomUUID()
+        : uid("chat"),
 
     user_id:
       currentUserId(),
@@ -8898,9 +9964,7 @@ async function sendChat(){
 
 
   /*
-    Local rendering makes the interface
-    feel instant even before realtime
-    echo arrives.
+    Render immediately.
   */
 
   renderChatMessage(
@@ -8913,17 +9977,29 @@ async function sendChat(){
     "";
 
 
-  if(
-    state.liveChannel
-  ){
+  if(!state.liveChannel){
+
+    /*
+      There is no realtime channel,
+      so the local message remains visible.
+    */
+
+    return;
+
+  }
+
+
+  try{
 
     const result =
       await state.liveChannel
         .send({
 
-          type:"broadcast",
+          type:
+            "broadcast",
 
-          event:"message",
+          event:
+            "message",
 
           payload
 
@@ -8941,6 +10017,18 @@ async function sendChat(){
 
     }
 
+  }catch(error){
+
+    console.error(
+      "Send chat error:",
+      error
+    );
+
+    toast(
+      "Message could not be sent to the realtime classroom.",
+      "err"
+    );
+
   }
 
 }
@@ -8948,7 +10036,7 @@ async function sendChat(){
 
 function renderChatMessage(
   payload,
-  mine=false
+  mine = false
 ){
 
   const container =
@@ -8956,6 +10044,11 @@ function renderChatMessage(
 
 
   if(!container){
+    return;
+  }
+
+
+  if(!payload){
     return;
   }
 
@@ -8968,8 +10061,11 @@ function renderChatMessage(
 
   const isMine =
     mine ||
-    payload.user_id ===
-      currentUserId();
+    (
+      payload.user_id &&
+      payload.user_id ===
+      currentUserId()
+    );
 
 
   div.className =
@@ -8980,8 +10076,15 @@ function renderChatMessage(
     }`;
 
 
+  /*
+    textContent prevents HTML/script
+    injection through chat messages.
+  */
+
   div.textContent =
-    `${payload.name || "User"}: ${payload.message}`;
+    `${payload.name || "User"}: ${
+      payload.message || ""
+    }`;
 
 
   container.appendChild(
@@ -9029,6 +10132,26 @@ function initWhiteboard(){
   }
 
 
+  /*
+    Remove any previous handlers.
+  */
+
+  canvas.onpointerdown =
+    null;
+
+  canvas.onpointermove =
+    null;
+
+  canvas.onpointerup =
+    null;
+
+  canvas.onpointercancel =
+    null;
+
+  canvas.onpointerleave =
+    null;
+
+
   let drawing =
     false;
 
@@ -9066,68 +10189,246 @@ function initWhiteboard(){
   }
 
 
-  canvas.onmousedown =
-    event => {
+  function beginDrawing(
+    event
+  ){
 
-      drawing =
-        true;
+    drawing =
+      true;
 
-      const point =
-        position(event);
 
-      ctx.beginPath();
+    try{
 
-      ctx.moveTo(
-        point.x,
-        point.y
+      canvas.setPointerCapture(
+        event.pointerId
       );
 
-    };
+    }catch(error){}
 
 
-  canvas.onmousemove =
+    const point =
+      position(event);
+
+
+    ctx.beginPath();
+
+
+    ctx.moveTo(
+      point.x,
+      point.y
+    );
+
+  }
+
+
+  function draw(
+    event
+  ){
+
+    if(!drawing){
+      return;
+    }
+
+
+    const point =
+      position(event);
+
+
+    ctx.lineTo(
+      point.x,
+      point.y
+    );
+
+
+    ctx.stroke();
+
+  }
+
+
+  function endDrawing(
+    event
+  ){
+
+    drawing =
+      false;
+
+
+    try{
+
+      canvas.releasePointerCapture(
+        event.pointerId
+      );
+
+    }catch(error){}
+
+
+    ctx.closePath();
+
+  }
+
+
+  canvas.onpointerdown =
+    beginDrawing;
+
+
+  canvas.onpointermove =
+    draw;
+
+
+  canvas.onpointerup =
+    endDrawing;
+
+
+  canvas.onpointercancel =
+    endDrawing;
+
+
+  canvas.onpointerleave =
     event => {
 
-      if(!drawing){
-        return;
+      /*
+        Do not stop drawing immediately on
+        pointer leave when the pointer is
+        captured.
+      */
+
+      if(!canvas.hasPointerCapture?.(
+        event.pointerId
+      )){
+
+        drawing =
+          false;
+
       }
 
-
-      const point =
-        position(event);
-
-
-      ctx.lineTo(
-        point.x,
-        point.y
-      );
-
-
-      ctx.stroke();
-
     };
 
 
-  canvas.onmouseup =
-    () => {
+  /*
+    Better drawing defaults.
+  */
 
-      drawing =
-        false;
+  ctx.lineCap =
+    "round";
 
-    };
+  ctx.lineJoin =
+    "round";
 
-
-  canvas.onmouseleave =
-    () => {
-
-      drawing =
-        false;
-
-    };
+  ctx.lineWidth =
+    2;
 
 }
 
 
+/* =========================================================
+   OPTIONAL GLOBAL SAFETY HELPERS
+   These prevent duplicate accidental calls
+   if this block is loaded more than once.
+========================================================= */
+
+window.openManager =
+  openManager;
+
+window.addLevel =
+  addLevel;
+
+window.editLevelPrompt =
+  editLevelPrompt;
+
+window.deleteLevel =
+  deleteLevel;
+
+window.addClass =
+  addClass;
+
+window.editClassPrompt =
+  editClassPrompt;
+
+window.deleteClass =
+  deleteClass;
+
+window.addSubject =
+  addSubject;
+
+window.editSubjectPrompt =
+  editSubjectPrompt;
+
+window.deleteSubject =
+  deleteSubject;
+
+window.openLessonModal =
+  openLessonModal;
+
+window.saveLesson =
+  saveLesson;
+
+window.editLesson =
+  editLesson;
+
+window.deleteLessonPrompt =
+  deleteLessonPrompt;
+
+window.openUserManagementModal =
+  openUserManagementModal;
+
+window.updateUserRole =
+  updateUserRole;
+
+window.repairUserRole =
+  repairUserRole;
+
+window.toggleUserStatus =
+  toggleUserStatus;
+
+window.adminGrantPurchasePrompt =
+  adminGrantPurchasePrompt;
+
+window.adminGrantPurchase =
+  adminGrantPurchase;
+
+window.openPlatformSettings =
+  openPlatformSettings;
+
+window.permissionControl =
+  permissionControl;
+
+window.savePlatformSettings =
+  savePlatformSettings;
+
+window.openLiveStudio =
+  openLiveStudio;
+
+window.startCameraStream =
+  startCameraStream;
+
+window.stopLiveStudioResources =
+  stopLiveStudioResources;
+
+window.initRealtimeChat =
+  initRealtimeChat;
+
+window.sendChat =
+  sendChat;
+
+window.renderChatMessage =
+  renderChatMessage;
+
+window.initWhiteboard =
+  initWhiteboard;
+
+window.viewLevelItem =
+  viewLevelItem;
+
+window.viewClassItem =
+  viewClassItem;
+
+window.viewSubjectItem =
+  viewSubjectItem;
+
+window.updateManagerClassesDropdown =
+  updateManagerClassesDropdown;
+
+  
 /* =========================================================
    START APPLICATION
 ========================================================= */
